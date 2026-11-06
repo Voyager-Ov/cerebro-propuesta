@@ -3,20 +3,28 @@
 import React, { useEffect, useRef, useCallback } from "react";
 
 /* ══ AsciiBlobOrb ═════════════════════════════════════════════════════════════
-   Un Orbe Blobtar Biomorphic ASCII interactivo.
+   Orbe Blobtar Biomorphic ASCII interactivo.
    
-   Combina tres disciplinas de Creative Coding:
-   1. Morfología Bio-Blob: masa fluida deformable en tiempo real mediante
-      armónicos esféricos/polares y respiración orgánica.
-   2. Física de Partículas Bencho (Particles.tsx): integración de resortes
-      Euler normalizada por dt (Math.pow(damping, dt)), repulsión por puntero
-      y deformación elíptica por velocidad que conserva la densidad óptica.
-   3. Campo Térmico y Rampa ASCII (ASCIIWake.tsx): los puntos fríos en reposo
-      se excitan ante el paso del cursor en una estela continua (sub-radio stamp),
-      mutando a glifos ASCII con centelleo retro de terminal (hash shimmer a 14Hz)
-      y atracción magnética hacia el cursor.
-   4. Reacción al Clic: onda de choque radial expansiva que propaga una perturbación
-      física y térmica simultánea a lo largo del orbe.
+   Características clave refinadas:
+   1. Reposo Zen (Status Quo Calm):
+      - Cero auto-giro y cero ruido autónomo en reposo ("no se mueve porque sí").
+      - Geometría circular armónica en calma.
+   2. Transición Suave y Animada (Smooth Excitation):
+      - Al entrar el cursor en la zona del orbe, la turbulencia y el movimiento
+        general despiertan con una rampa asintótica suave y gradual (sin saltos bruscos).
+      - Al retirar el cursor, la masa retorna fluidamente al reposo absoluto.
+   3. Puntos y Caracteres Más Grandes:
+      - Nodos semitono en reposo con radio sustancial (~3.6 a 5.8px).
+      - Tipografía ASCII a 15px monospace en negrita para alta legibilidad.
+   4. Ojos Blobatar Expresivos:
+      - Cuencas oculares con contorno nítido, vacío interno y pupilas con
+        seguimiento inercial de alta fidelidad hacia el cursor.
+      - Parpadeo reactivo y autónomo en hendidura (*blink slit*).
+   5. Física de Resortes Bencho (Particles.tsx) + Estela Térmica (ASCIIWake.tsx):
+      - Resortes Euler frame-independent con amortiguación Math.pow(0.84, dt).
+      - Deformación elíptica por velocidad que preserva el volumen óptico.
+      - Rampa de caracteres ASCII con centelleo terminal a 14Hz.
+      - Onda de choque radial expansiva (Shockwave) al hacer clic.
    ══════════════════════════════════════════════════════════════════════════════ */
 
 export type BlobOrbMode = "idle" | "listening" | "voice" | "thinking" | "speaking";
@@ -38,67 +46,63 @@ export const BLOB_PALETTES: Record<
   monochrome: {
     primary: "#FFFFFF",
     secondary: "#D4D4D8",
-    coldInk: "#71717A",
+    coldInk: "#8E8E93",
     eyeAccent: "#FFFFFF",
-    halo: "rgba(255, 255, 255, 0.18)",
+    halo: "rgba(255, 255, 255, 0.16)",
   },
   cobalt: {
     primary: "#388BFD",
     secondary: "#1B3B6F",
-    coldInk: "#0D2149",
+    coldInk: "#1D3557",
     eyeAccent: "#93C5FD",
-    halo: "rgba(0, 102, 255, 0.22)",
+    halo: "rgba(0, 102, 255, 0.20)",
   },
   cyan: {
     primary: "#22D3EE",
     secondary: "#164E63",
-    coldInk: "#083344",
+    coldInk: "#0E4A5E",
     eyeAccent: "#A5F3FC",
-    halo: "rgba(0, 240, 255, 0.22)",
+    halo: "rgba(0, 240, 255, 0.20)",
   },
   emerald: {
     primary: "#34D399",
     secondary: "#065F46",
-    coldInk: "#022C22",
+    coldInk: "#064E3B",
     eyeAccent: "#A7F3D0",
-    halo: "rgba(16, 185, 129, 0.22)",
+    halo: "rgba(16, 185, 129, 0.20)",
   },
   amber: {
     primary: "#FBBF24",
     secondary: "#92400E",
-    coldInk: "#451A03",
+    coldInk: "#78350F",
     eyeAccent: "#FDE68A",
-    halo: "rgba(245, 158, 11, 0.22)",
+    halo: "rgba(245, 158, 11, 0.20)",
   },
 };
 
-/* ── Tipografía para glifos: Monospace del sistema sin dependencias externas ── */
 const MONO_FONT = `ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace`;
 
-/* ── Función de clamp numérico rápido ── */
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
-/* ── Hash entero determinista para el centelleo (shimmer) a 14Hz ── */
 function hash14Hz(k: number, deal: number): number {
   let h = (k * 374761393 + deal * 668265263) | 0;
   h = Math.imul(h ^ (h >>> 13), 1274126177);
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
-/* ── Constantes Físicas y Térmicas Fundamentales ── */
-const THERMAL_COLD_THRESHOLD = 0.04; // Por debajo de este calor, el nodo es un punto frío
-const SHOCKWAVE_DURATION = 1.8;      // Duración de la onda de choque en segundos
-const SHIMMER_INTERVAL_S = 0.07;     // ~14 Hz de recambio para el parpadeo de terminal
+const THERMAL_COLD_THRESHOLD = 0.04;
+const SHOCKWAVE_DURATION = 1.8;
+const SHIMMER_INTERVAL_S = 0.07;
 
 export interface AsciiBlobOrbProps {
   mode?: BlobOrbMode;
   palette?: BlobPaletteName;
   glyphs?: GlyphRampName;
   particleDensity?: "fine" | "medium" | "coarse";
-  reach?: number; // Radio de empuje del cursor (px)
-  force?: number; // Fuerza de repulsión (0..100)
-  trail?: number; // Duración del enfriamiento en segundos
-  pull?: number;  // Atracción magnética hacia el cursor (0..100)
+  reach?: number; // Radio de interacción del cursor en px
+  force?: number; // Fuerza de repulsión elástica (0..100)
+  trail?: number; // Duración de la estela térmica en segundos
+  pull?: number;  // Atracción magnética de glifos hacia el mouse (0..100)
   showEyes?: boolean;
   className?: string;
   onBlobClick?: () => void;
@@ -109,9 +113,9 @@ export function AsciiBlobOrb({
   palette = "monochrome",
   glyphs = "Classic",
   particleDensity = "medium",
-  reach = 75,
+  reach = 85,
   force = 55,
-  trail = 1.2,
+  trail = 1.3,
   pull = 35,
   showEyes = true,
   className = "w-full h-full",
@@ -120,7 +124,6 @@ export function AsciiBlobOrb({
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Parámetros reactivos mutables en ref para no recrear buffers innecesariamente
   const knobsRef = useRef({
     mode,
     palette,
@@ -147,7 +150,7 @@ export function AsciiBlobOrb({
     };
   }, [mode, palette, glyphs, reach, force, trail, pull, showEyes, particleDensity]);
 
-  // Blink trigger para los ojos Blobatar
+  // Parpadeo de ojos Blobatar
   const blinkStateRef = useRef({ progress: 1.0, isBlinking: false });
 
   const triggerBlink = useCallback(() => {
@@ -170,7 +173,6 @@ export function AsciiBlobOrb({
     requestAnimationFrame(stepBlink);
   }, []);
 
-  // Parpadeo autónomo
   useEffect(() => {
     let timer: NodeJS.Timeout;
     const scheduleNext = () => {
@@ -192,7 +194,6 @@ export function AsciiBlobOrb({
     const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) return;
 
-    /* ── Dimensión y Soporte Retina / HiDPI (máx 2x) ── */
     let width = container.clientWidth || 480;
     let height = container.clientHeight || 400;
     let dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -212,32 +213,25 @@ export function AsciiBlobOrb({
     });
     ro.observe(container);
 
-    /* ── Detección de Accesibilidad (prefers-reduced-motion) ── */
     const isMotionReduced =
       typeof window !== "undefined" &&
       !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
-    /* ── Buffers de Partículas (Structure of Arrays) ── */
+    // Con puntos más grandes, ajustamos la cuenta para mantener el espaciado armónico
     let particleCount =
-      particleDensity === "fine" ? 720 : particleDensity === "medium" ? 540 : 380;
+      particleDensity === "fine" ? 540 : particleDensity === "medium" ? 400 : 280;
 
     interface ParticleSOA {
-      // Coordenadas base en el disco ideal
       baseRadius: Float32Array;
       baseAngle: Float32Array;
       phase: Float32Array;
-      // Posición viva Home
       hx: Float32Array;
       hy: Float32Array;
-      // Posición física actual
       x: Float32Array;
       y: Float32Array;
-      // Velocidades
       vx: Float32Array;
       vy: Float32Array;
-      // Campo térmico (estela ASCII)
       heat: Float32Array;
-      // Tamaño nominal de reposo
       size: Float32Array;
     }
 
@@ -245,8 +239,8 @@ export function AsciiBlobOrb({
 
     const initParticles = () => {
       const N = particleCount;
-      const baseR = Math.min(width, height) * 0.34;
-      const goldenAngle = Math.PI * (3 - Math.sqrt(5)); // ~137.5 grados (Fermat spiral)
+      const baseR = Math.min(width, height) * 0.35;
+      const goldenAngle = Math.PI * (3 - Math.sqrt(5)); // ~137.5 grados
 
       const bRadius = new Float32Array(N);
       const bAngle = new Float32Array(N);
@@ -264,7 +258,6 @@ export function AsciiBlobOrb({
       const cy = height * 0.5;
 
       for (let i = 0; i < N; i++) {
-        // Distribución equitativa por área en disco (Vogel / Fermat spiral)
         const rNorm = Math.sqrt((i + 0.5) / N);
         const theta = i * goldenAngle;
         const r = rNorm * baseR;
@@ -283,7 +276,9 @@ export function AsciiBlobOrb({
         vx[i] = 0;
         vy[i] = 0;
         heat[i] = 0;
-        size[i] = 1.8 + Math.random() * 1.6;
+
+        // Puntos más grandes (radio entre 3.6 y 5.6 px para presencia nítida)
+        size[i] = 3.6 + Math.random() * 2.0;
       }
 
       particles = {
@@ -318,7 +313,6 @@ export function AsciiBlobOrb({
 
     const shockwaveRings: Array<{ x: number; y: number; t: number }> = [];
 
-    // Estampado térmico continuo a lo largo del trazo
     const stampThermal = (
       x: number,
       y: number,
@@ -349,14 +343,13 @@ export function AsciiBlobOrb({
 
     const handlePointerMove = (e: MouseEvent) => {
       const { x, y } = getPointerPos(e);
-      const wakeRadius = 14 + (knobsRef.current.reach / 100) * 48;
+      const wakeRadius = 18 + (knobsRef.current.reach / 100) * 54;
 
       if (Number.isNaN(pointer.lx)) {
         pointer.lx = x;
         pointer.ly = y;
       }
 
-      // Interpolación de sellos entre el cuadro previo y el actual para no dejar huecos
       const dist = Math.hypot(x - pointer.lx, y - pointer.ly);
       pointer.velocity = dist;
       const steps = Math.max(1, Math.ceil(dist / (wakeRadius * 0.35)));
@@ -393,18 +386,16 @@ export function AsciiBlobOrb({
       pointer.squishVelocity -= 0.85;
       triggerBlink();
 
-      // Dispersión física radial violenta de las partículas
       const S = 0.5 + (clamp(knobsRef.current.force, 0, 100) / 100) * 1.5;
       for (let i = 0; i < particleCount; i++) {
         const dx = particles.x[i] - x;
         const dy = particles.y[i] - y;
         const d = Math.hypot(dx, dy);
-        if (d > 220 || d < 0.01) continue;
-        const f = (1 - d / 220) * 38 * S;
+        if (d > 230 || d < 0.01) continue;
+        const f = (1 - d / 230) * 36 * S;
         particles.vx[i] += (dx / d) * f;
         particles.vy[i] += (dy / d) * f;
-        // Inyectar calor instantáneo en la zona de impacto
-        particles.heat[i] = Math.min(1.0, particles.heat[i] + (1 - d / 220) * 0.8);
+        particles.heat[i] = Math.min(1.0, particles.heat[i] + (1 - d / 230) * 0.85);
       }
 
       if (onBlobClick) onBlobClick();
@@ -415,15 +406,20 @@ export function AsciiBlobOrb({
     container.addEventListener("mouseleave", handlePointerLeave);
     container.addEventListener("mousedown", handlePointerDown);
 
-    /* ── Ciclo de Animación (RAF Loop) ── */
+    /* ── Ciclo de Animación ── */
     let animId = 0;
     let prevTime = performance.now();
     let tickShimmer = 0;
     let dealCounter = 0;
     let globalAngle = 0;
 
+    // Transición suave y animada al entrar el mouse (Smooth Excitation)
+    let smoothExcitation = 0.0;
+    // Ojos Blobatar con inercia suave
+    let smoothEyeX = 0.0;
+    let smoothEyeY = 0.0;
+
     const render = (currentTime: number) => {
-      // Delta time normalizado en unidades de 1/60s (16.67ms)
       const rawDt = Math.min(0.05, (currentTime - prevTime) / 1000);
       const dtFrames = clamp((currentTime - prevTime) / 16.67, 0.1, 2.5);
       prevTime = currentTime;
@@ -433,15 +429,15 @@ export function AsciiBlobOrb({
       const ramp = GLYPH_RAMPS[knobs.glyphs] || GLYPH_RAMPS.Classic;
       const topRampIndex = ramp.length - 1;
 
-      // Actualizar temporizador de Shimmer de terminal (~14 Hz)
+      // Actualizar Shimmer de terminal a ~14 Hz
       tickShimmer += rawDt;
       if (tickShimmer > SHIMMER_INTERVAL_S) {
         tickShimmer = 0;
         dealCounter++;
       }
 
-      // Cinemática de squish (Hooke's Spring)
-      const targetSquish = pointer.inside ? 0.92 : 1.0;
+      // Física de squish (Hooke)
+      const targetSquish = pointer.inside ? 0.93 : 1.0;
       const springK = 180.0;
       const dampingC = 12.0;
       const disp = pointer.squishScaleY - targetSquish;
@@ -452,30 +448,29 @@ export function AsciiBlobOrb({
       const squishY = pointer.squishScaleY;
       const squishX = 1.0 + (1.0 - squishY) * 0.5;
 
-      // Inercia de proximidad del puntero (lean/pull)
+      // Inercia de proximidad
       pointer.near +=
         ((pointer.inside ? 1 : 0) - pointer.near) *
         (1 - Math.pow(0.005, rawDt));
 
       pointer.velocity *= 0.88;
 
-      // ── STATUS QUO TRANQUILO (Sin auto-giro ni agitación autónoma) ──
-      // En reposo respira de forma zen casi imperceptible; muta por acciones externas
-      let morphSpeed = 0.35;
-      let morphAmp1 = 0.012; // Reposo muy sutil
-      let morphAmp2 = 0.007;
-      let morphAmp3 = 0.003;
+      /* ── 1. TRANSICIÓN SUAVE Y ANIMADA DEL MOVIMIENTO GENERAL (SMOOTH EXCITATION) ── */
+      // Cuando el mouse entra al orbe, smoothExcitation sube suavemente de 0.0 a 1.0 sin saltos bruscos.
+      // Cuando sale, se apaga gradualmente retornando al reposo zen ("no se mueve porque sí").
+      const targetExcitation = pointer.inside ? 1.0 : 0.0;
+      smoothExcitation += (targetExcitation - smoothExcitation) * (1.0 - Math.pow(0.03, rawDt));
 
-      // ── ACCIÓN EXTERNA 1: Interacción del cursor / velocidad ──
-      if (pointer.inside) {
-        const pointerSpeed = Math.min(1.0, pointer.velocity / 18.0);
-        morphAmp1 += 0.05 + pointerSpeed * 0.08;
-        morphAmp2 += 0.03 + pointerSpeed * 0.05;
-        morphAmp3 += 0.02 + pointerSpeed * 0.03;
-        morphSpeed = 0.75 + pointerSpeed * 1.5;
-      }
+      const pointerSpeed = Math.min(1.0, pointer.velocity / 18.0);
+      const activeIntensity = smoothExcitation * (0.85 + pointerSpeed * 0.65);
 
-      // ── ACCIÓN EXTERNA 2: Modulación por audio / modo externo ──
+      // En reposo (status quo): smoothExcitation = 0 -> morphAmp = 0 (cero movimiento autónomo)
+      let morphSpeed = 0.35 + activeIntensity * 1.5;
+      let morphAmp1 = activeIntensity * 0.075;
+      let morphAmp2 = activeIntensity * 0.045;
+      let morphAmp3 = activeIntensity * 0.025;
+
+      // Modos externos (voz, audio, pensamiento)
       if (knobs.mode === "listening" || knobs.mode === "voice") {
         morphSpeed = 2.0;
         morphAmp1 = 0.12;
@@ -489,28 +484,41 @@ export function AsciiBlobOrb({
       } else if (knobs.mode === "speaking") {
         const speechPulse = Math.sin(currentTime * 0.012) * 0.5 + 0.5;
         morphSpeed = 1.5 + speechPulse * 1.4;
-        morphAmp1 = 0.07 + speechPulse * 0.10;
+        morphAmp1 = 0.07 + speechPulse * 0.09;
         morphAmp2 = 0.04 + speechPulse * 0.06;
         morphAmp3 = 0.03;
       }
 
-      // NO auto-girar: orientación fija hacia el frente con sutil paralaje reactivo al puntero
       const cx = width * 0.5;
       const cy = height * 0.5;
+
+      // Paralaje sutil únicamente reactivo al mouse (0 auto-giro)
       const targetParallaxAngle = pointer.inside ? (pointer.x - cx) * 0.0003 : 0;
       globalAngle += (targetParallaxAngle - globalAngle) * 0.08;
 
-      const baseR = Math.min(width, height) * 0.34;
+      const baseR = Math.min(width, height) * 0.35;
 
-      // Ojos Blobatar Look-At
-      const eyeLookX = (pointer.x - cx) * 0.08;
-      const eyeLookY = (pointer.y - cy) * 0.08;
-      const eyeLX = cx - 36 + eyeLookX;
-      const eyeRX = cx + 36 + eyeLookX;
-      const eyeY = cy - 22 + eyeLookY;
-      const eyeRadius = 24;
+      /* ── 2. OJOS BLOBATAR EXPRESIVOS (LOOK-AT INERCIAL) ── */
+      // Cuando el mouse no está en el orbe, los ojos miran pacíficamente al frente (offset = 0)
+      const targetEyeX = pointer.inside
+        ? clamp((pointer.x - cx) / (width * 0.45), -1, 1) * 22
+        : 0;
+      const targetEyeY = pointer.inside
+        ? clamp((pointer.y - cy) / (height * 0.45), -1, 1) * 16
+        : 0;
 
-      // Anillos de onda de choque activos
+      smoothEyeX += (targetEyeX - smoothEyeX) * (1.0 - Math.pow(0.04, rawDt));
+      smoothEyeY += (targetEyeY - smoothEyeY) * (1.0 - Math.pow(0.04, rawDt));
+
+      const eyeSpread = 40;
+      const eyeElevation = 22;
+      const eyeLX = cx - eyeSpread + smoothEyeX;
+      const eyeRX = cx + eyeSpread + smoothEyeX;
+      const eyeY = cy - eyeElevation + smoothEyeY;
+      const eyeRadiusX = 22;
+      const eyeRadiusY = 27;
+
+      // Ondas de choque
       for (let rIdx = shockwaveRings.length - 1; rIdx >= 0; rIdx--) {
         shockwaveRings[rIdx].t += rawDt;
         if (shockwaveRings[rIdx].t >= SHOCKWAVE_DURATION) {
@@ -529,10 +537,9 @@ export function AsciiBlobOrb({
         };
       });
 
-      // Factor de enfriamiento continuo de la estela
       const keepHeat = Math.exp((-rawDt * 3.0) / Math.max(0.1, knobs.trail));
 
-      /* ── Actualización de Partículas: Morfología + Resortes + Calor ── */
+      /* ── Actualización de Partículas ── */
       const R_reach = clamp(knobs.reach, 30, 160);
       const pushForce = (clamp(knobs.force, 0, 100) / 100) * 11;
       const leanStrength = (clamp(knobs.pull, 0, 100) / 100) * pointer.near;
@@ -543,7 +550,7 @@ export function AsciiBlobOrb({
         const angle = particles.baseAngle[i] + globalAngle;
         const phase = particles.phase[i];
 
-        // Deformación armónica polar (Superficie Viva)
+        // Deformación armónica polar (solo activa ante interacción)
         const harm =
           Math.sin(angle * 2.0 + currentTime * 0.0015 * morphSpeed + phase) * morphAmp1 +
           Math.cos(angle * 3.0 - currentTime * 0.0018 * morphSpeed) * morphAmp2 +
@@ -551,25 +558,8 @@ export function AsciiBlobOrb({
 
         const dynamicR = particles.baseRadius[i] * (1.0 + harm);
 
-        // Posición Home en el plano deformado con Squish
         let targetHx = cx + Math.cos(angle) * dynamicR * squishX;
         let targetHy = cy + Math.sin(angle) * dynamicR * squishY;
-
-        // Blobatar Hollow Eye Cavity Check
-        let insideEye = false;
-        if (knobs.showEyes) {
-          const blinkComp = Math.max(0.12, blinkStateRef.current.progress);
-          const dL = Math.hypot(targetHx - eyeLX, (targetHy - eyeY) / blinkComp);
-          const dR = Math.hypot(targetHx - eyeRX, (targetHy - eyeY) / blinkComp);
-
-          if (dL < eyeRadius || dR < eyeRadius) {
-            const minD = Math.min(dL, dR);
-            if (minD < eyeRadius * 0.65) {
-              // Vacío absoluto dentro de la cuenca
-              insideEye = true;
-            }
-          }
-        }
 
         particles.hx[i] = targetHx;
         particles.hy[i] = targetHy;
@@ -586,7 +576,7 @@ export function AsciiBlobOrb({
           }
         }
 
-        // Perturbación por ondas de choque activas
+        // Perturbación por ondas de choque
         for (const ring of activeRings) {
           const rdx = particles.x[i] - ring.x;
           const rdy = particles.y[i] - ring.y;
@@ -602,7 +592,7 @@ export function AsciiBlobOrb({
           }
         }
 
-        // Integración de resorte Euler frame-independent (damping normalizado por dt)
+        // Resorte Euler frame-independent
         const springDamping = Math.pow(0.84, dtFrames);
         particles.vx[i] =
           (particles.vx[i] + (particles.hx[i] - particles.x[i]) * 0.05 * dtFrames) *
@@ -614,7 +604,6 @@ export function AsciiBlobOrb({
         particles.x[i] += particles.vx[i] * dtFrames;
         particles.y[i] += particles.vy[i] * dtFrames;
 
-        // Snap si se encuentra en reposo absoluto
         if (
           Math.abs(particles.hx[i] - particles.x[i]) < 0.05 &&
           Math.abs(particles.hy[i] - particles.y[i]) < 0.05 &&
@@ -627,45 +616,45 @@ export function AsciiBlobOrb({
           particles.vy[i] = 0;
         }
 
-        // Enfriamiento térmico continuo
         particles.heat[i] *= keepHeat;
         if (particles.heat[i] < 0.003) particles.heat[i] = 0;
       }
 
-      /* ── Renderizado Canvas 2D Puro ── */
+      /* ── Renderizado Canvas 2D ── */
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      // Fondo negro puro (estricto Anti-Slop)
+      // Fondo negro estricto
       ctx.fillStyle = "#000000";
       ctx.fillRect(0, 0, width, height);
 
       // Halo sutil de fondo
-      const gradient = ctx.createRadialGradient(cx, cy, 10, cx, cy, baseR * 1.25);
+      const gradient = ctx.createRadialGradient(cx, cy, 10, cx, cy, baseR * 1.3);
       gradient.addColorStop(0, paletteDef.halo);
       gradient.addColorStop(1, "rgba(0,0,0,0)");
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, width, height);
 
-      // Configuración de texto para glifos ASCII
-      ctx.font = `600 11px ${MONO_FONT}`;
+      // Tipografía más grande y nítida para los glifos ASCII (15px)
+      ctx.font = `600 15px ${MONO_FONT}`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
+      const blinkComp = Math.max(0.12, blinkStateRef.current.progress);
+
       /* ── Dibujo de Partículas: Halftone Frío o Glifo Caliente ── */
       for (let i = 0; i < particleCount; i++) {
-        // Culling si el nodo cae en la cavidad ocular pura
+        // Culling estricto dentro de la cuenca ocular para dejar el hueco negro puro
         if (knobs.showEyes) {
-          const blinkComp = Math.max(0.12, blinkStateRef.current.progress);
-          const dL = Math.hypot(particles.x[i] - eyeLX, (particles.y[i] - eyeY) / blinkComp);
-          const dR = Math.hypot(particles.x[i] - eyeRX, (particles.y[i] - eyeY) / blinkComp);
-          if (dL < eyeRadius * 0.65 || dR < eyeRadius * 0.65) continue;
+          const dL = Math.hypot((particles.x[i] - eyeLX) / eyeRadiusX, (particles.y[i] - eyeY) / (eyeRadiusY * blinkComp));
+          const dR = Math.hypot((particles.x[i] - eyeRX) / eyeRadiusX, (particles.y[i] - eyeY) / (eyeRadiusY * blinkComp));
+          if (dL < 1.05 || dR < 1.05) continue;
         }
 
         let renderX = particles.x[i];
         let renderY = particles.y[i];
         let h = particles.heat[i];
 
-        // Atracción magnética (Lean toward pointer)
+        // Atracción magnética hacia el cursor
         if (leanStrength > 0.002 && pointer.inside) {
           const mdx = pointer.x - renderX;
           const mdy = pointer.y - renderY;
@@ -681,7 +670,7 @@ export function AsciiBlobOrb({
 
         const sp = Math.hypot(particles.vx[i], particles.vy[i]);
 
-        // FASE FRÍA: Micro-puntos / elipses Bencho
+        // FASE FRÍA: Puntos / Elipses grandes de semitono
         if (h <= THERMAL_COLD_THRESHOLD) {
           ctx.fillStyle = paletteDef.coldInk;
           const r = particles.size[i];
@@ -691,8 +680,7 @@ export function AsciiBlobOrb({
             ctx.arc(renderX, renderY, r, 0, Math.PI * 2);
             ctx.fill();
           } else {
-            // Estiramiento elíptico por velocidad (conservación de área óptica)
-            const s = Math.min(2.6, 1 + sp * 0.12);
+            const s = Math.min(2.5, 1 + sp * 0.12);
             const rot = Math.atan2(particles.vy[i], particles.vx[i]);
             ctx.beginPath();
             ctx.ellipse(renderX, renderY, r * s, r / Math.sqrt(s), rot, 0, Math.PI * 2);
@@ -701,14 +689,12 @@ export function AsciiBlobOrb({
           continue;
         }
 
-        // FASE CALIENTE: Rampa ASCII con Centelleo (Shimmer a 14Hz)
+        // FASE CALIENTE: Rampa ASCII con Shimmer a 14Hz
         let glyphIndexVal = h * topRampIndex + 0.5;
-        // Perturbación terminal hash
         glyphIndexVal += (hash14Hz(i, dealCounter) - 0.5) * 1.6 * Math.min(1.0, h * 2);
         const glyphIdx = clamp(Math.floor(glyphIndexVal), 1, topRampIndex);
 
-        // Color según intensidad de calor
-        if (h > 0.7) {
+        if (h > 0.65) {
           ctx.fillStyle = paletteDef.primary;
         } else {
           ctx.fillStyle = paletteDef.secondary;
@@ -717,16 +703,60 @@ export function AsciiBlobOrb({
         ctx.fillText(ramp[glyphIdx], renderX, renderY);
       }
 
-      // Parpadeo ocular: renderizar slits horizontales luminosos si está parpadeando
-      if (knobs.showEyes && blinkStateRef.current.progress < 0.25) {
-        ctx.strokeStyle = paletteDef.eyeAccent;
-        ctx.lineWidth = 2.4;
-        ctx.beginPath();
-        ctx.moveTo(eyeLX - 10, eyeY);
-        ctx.lineTo(eyeLX + 10, eyeY);
-        ctx.moveTo(eyeRX - 10, eyeY);
-        ctx.lineTo(eyeRX + 10, eyeY);
-        ctx.stroke();
+      /* ── 3. RENDERIZADO DE OJOS BLOBATAR EXPRESIVOS ── */
+      if (knobs.showEyes) {
+        if (blinkStateRef.current.progress < 0.25) {
+          // Rendija luminosa al parpadear
+          ctx.strokeStyle = paletteDef.eyeAccent;
+          ctx.lineWidth = 2.8;
+          ctx.beginPath();
+          ctx.moveTo(eyeLX - eyeRadiusX * 0.85, eyeY);
+          ctx.lineTo(eyeLX + eyeRadiusX * 0.85, eyeY);
+          ctx.moveTo(eyeRX - eyeRadiusX * 0.85, eyeY);
+          ctx.lineTo(eyeRX + eyeRadiusX * 0.85, eyeY);
+          ctx.stroke();
+        } else {
+          // Cuenca Ocular Hueca Negra con Borde de Alta Definición
+          ctx.fillStyle = "#000000";
+          ctx.strokeStyle = paletteDef.eyeAccent;
+          ctx.lineWidth = 2.0;
+
+          // Cavidad Ojo Izquierdo
+          ctx.beginPath();
+          ctx.ellipse(eyeLX, eyeY, eyeRadiusX, eyeRadiusY * blinkComp, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Cavidad Ojo Derecho
+          ctx.beginPath();
+          ctx.ellipse(eyeRX, eyeY, eyeRadiusX, eyeRadiusY * blinkComp, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Pupila Expresiva Blobatar con Look-At Reactivo
+          const pupilOffsetX = smoothEyeX * 0.38;
+          const pupilOffsetY = smoothEyeY * 0.38;
+          const pupilR = 5.8 * blinkComp;
+
+          ctx.fillStyle = paletteDef.primary;
+          ctx.beginPath();
+          ctx.arc(eyeLX + pupilOffsetX, eyeY + pupilOffsetY, pupilR, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(eyeRX + pupilOffsetX, eyeY + pupilOffsetY, pupilR, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Micro-reflejo especular blanco
+          ctx.fillStyle = "#FFFFFF";
+          ctx.beginPath();
+          ctx.arc(eyeLX + pupilOffsetX - 1.8, eyeY + pupilOffsetY - 1.8, pupilR * 0.36, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(eyeRX + pupilOffsetX - 1.8, eyeY + pupilOffsetY - 1.8, pupilR * 0.36, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
 
       animId = requestAnimationFrame(render);
@@ -735,7 +765,6 @@ export function AsciiBlobOrb({
     if (!isMotionReduced) {
       animId = requestAnimationFrame(render);
     } else {
-      // Si el usuario tiene prefers-reduced-motion, dibuja un cuadro estático
       render(performance.now());
     }
 
