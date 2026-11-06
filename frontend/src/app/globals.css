@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+/* ══ Particles ═════════════════════════════════════════════
+   lab/Particles.tsx. The dots are drawn on a canvas in the
+   element's own `color`, so the ink is set here and the theme
+   carries it. */
+.ptc {
+  /* Bencho design tokens scoped locally on the component's own root */
+  --ink: currentColor;
+  --fill-on: var(--ink);
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.ptc-canvas {
+  display: block;
+  color: var(--fill-on, var(--ink));
+  cursor: crosshair;
+  touch-action: none;
+}
+
+/* ══ ASCII wake ════════════════════════════════════════════ */
+.asc {
+  /* Bencho design tokens scoped locally on the component's own root */
+  --ink: currentColor;
+  --fill-on: var(--ink);
+  position: relative;
+  cursor: crosshair;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.asc-canvas {
+  display: block;
+  color: var(--fill-on, var(--ink));
+}
+
+/* ══ AsciiBlobOrb ══════════════════════════════════════════
+   Orbe Blobtar Biomorphic ASCII interactivo.
+   Combina morfología viva fluida, física de resortes Bencho
+   y estela térmica con glifos ASCII y shimmer terminal. */
+.ascii-blob-orb {
+  --ink: currentColor;
+  --fill-on: var(--ink);
+  position: relative;
+  display: grid;
+  place-items: center;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ascii-blob-canvas {
+  display: block;
+  color: var(--fill-on, var(--ink));
+  touch-action: none;
+  cursor: crosshair;
+}
+
