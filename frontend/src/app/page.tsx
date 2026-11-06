@@ -17,6 +17,9 @@ import {
   Layers,
   MousePointer,
   Zap,
+  Coins,
+  Network,
+  RefreshCw,
 } from "lucide-react";
 import gsap from "gsap";
 
@@ -35,6 +38,11 @@ const CanonicalBlobatar = dynamic(
   { ssr: false }
 );
 
+const CryptoAsciiBoard = dynamic(
+  () => import("@/components/CryptoAsciiBoard").then((mod) => mod.CryptoAsciiBoard),
+  { ssr: false }
+);
+
 const SAMPLE_SEEDS = [
   "HackaTwin-Sphere-01",
   "CriteriaLock-Agent-02",
@@ -43,7 +51,7 @@ const SAMPLE_SEEDS = [
   "Bencho-Minimal-05",
 ];
 
-export type PrototypeView = "compare" | "ascii-blob" | "sphere-3d" | "escrow";
+export type PrototypeView = "compare" | "ascii-blob" | "sphere-3d" | "escrow" | "crypto-board";
 
 const PROTOTYPE_OPTIONS: Array<{
   id: PrototypeView;
@@ -75,6 +83,12 @@ const PROTOTYPE_OPTIONS: Array<{
     badge: "CriteriaLock",
     icon: Shield,
   },
+  {
+    id: "crypto-board",
+    label: "Crypto ASCII",
+    badge: "Three.js & Stables",
+    icon: Coins,
+  },
 ];
 
 export default function Home() {
@@ -85,11 +99,22 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<"escrow" | "chat">("escrow");
   const [showOrbitRing, setShowOrbitRing] = useState(true);
   const [orbType, setOrbType] = useState<"sphere" | "blob">("blob");
+  const [genesisType, setGenesisType] = useState<"graph" | "fibonacci" | "quantum">("graph");
+  const [genesisKey, setGenesisKey] = useState(0);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const rightPanelRef = useRef<HTMLDivElement>(null);
   const tabContentRef = useRef<HTMLDivElement>(null);
+
+  const handleReplayGenesis = () => {
+    setGenesisKey((prev) => prev + 1);
+  };
+
+  const handleGenesisSelect = (type: "graph" | "fibonacci" | "quantum") => {
+    setGenesisType(type);
+    setGenesisKey((prev) => prev + 1);
+  };
 
   const currentSeed = SAMPLE_SEEDS[seedIndex % SAMPLE_SEEDS.length];
   const paletteName =
@@ -221,11 +246,58 @@ export default function Home() {
               <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white mb-2">
                 Blobatar Oficial <span className="text-zinc-500 font-normal">vs</span> Blobatar ASCII
               </h1>
-              <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
+              <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed mb-4">
                 Mueve el cursor por la pantalla: ambos orbes giran su mirada juntos.
                 Los ojos del orbe ASCII son <strong className="text-zinc-200 font-semibold">cavidades negativas vacías (sin nada adentro)</strong>,
                 con parpadeo y deformación elástica.
               </p>
+
+              {/* Selector interactivo de Génesis del Orbe */}
+              <div className="inline-flex flex-wrap items-center justify-center gap-1.5 p-1 rounded-2xl bg-[#09090b]/90 border border-zinc-800/80 backdrop-blur-xl">
+                <span className="text-[10px] font-mono uppercase text-zinc-500 px-2.5 py-1 flex items-center gap-1.5">
+                  <Network className="w-3 h-3 text-blue-400" />
+                  <span>Génesis:</span>
+                </span>
+                <button
+                  onClick={() => handleGenesisSelect("graph")}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-mono transition-all cursor-pointer ${
+                    genesisType === "graph"
+                      ? "bg-blue-500/20 text-blue-300 border border-blue-500/50 shadow-sm"
+                      : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 border border-transparent"
+                  }`}
+                >
+                  <span>☍ Grafo 1→2→6</span>
+                </button>
+                <button
+                  onClick={() => handleGenesisSelect("fibonacci")}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-mono transition-all cursor-pointer ${
+                    genesisType === "fibonacci"
+                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 shadow-sm"
+                      : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 border border-transparent"
+                  }`}
+                >
+                  <span>🌀 Fibonacci</span>
+                </button>
+                <button
+                  onClick={() => handleGenesisSelect("quantum")}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-mono transition-all cursor-pointer ${
+                    genesisType === "quantum"
+                      ? "bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-sm"
+                      : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 border border-transparent"
+                  }`}
+                >
+                  <span>💥 Big Bang</span>
+                </button>
+                <div className="w-[1px] h-4 bg-zinc-800 mx-1" />
+                <button
+                  onClick={handleReplayGenesis}
+                  title="Reiniciar ensamblado del orbe"
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold bg-white text-black hover:bg-zinc-200 transition-colors cursor-pointer shadow-sm"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  <span>Replay Génesis</span>
+                </button>
+              </div>
             </div>
 
             {/* Side-by-Side Cards Grid */}
@@ -297,6 +369,8 @@ export default function Home() {
                     trail={1.4}
                     pull={40}
                     showEyes={true}
+                    genesisType={genesisType}
+                    genesisKey={genesisKey}
                     className="w-full h-full"
                   />
 
@@ -350,6 +424,53 @@ export default function Home() {
               <span>SUPERFICIE: Halftone Euler con estela térmica ASCII</span>
             </div>
 
+            {/* Genesis Selector Pill Top Center */}
+            <div className="absolute top-24 z-30 hidden sm:flex items-center gap-1.5 p-1 rounded-2xl bg-[#09090b]/90 border border-zinc-800/80 backdrop-blur-xl">
+              <span className="text-[10px] font-mono uppercase text-zinc-500 px-2.5 py-1 flex items-center gap-1.5">
+                <Network className="w-3 h-3 text-blue-400" />
+                <span>Génesis:</span>
+              </span>
+              <button
+                onClick={() => handleGenesisSelect("graph")}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-mono transition-all cursor-pointer ${
+                  genesisType === "graph"
+                    ? "bg-blue-500/20 text-blue-300 border border-blue-500/50 shadow-sm"
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 border border-transparent"
+                }`}
+              >
+                <span>☍ Grafo 1→2→6</span>
+              </button>
+              <button
+                onClick={() => handleGenesisSelect("fibonacci")}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-mono transition-all cursor-pointer ${
+                  genesisType === "fibonacci"
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 shadow-sm"
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 border border-transparent"
+                }`}
+              >
+                <span>🌀 Fibonacci</span>
+              </button>
+              <button
+                onClick={() => handleGenesisSelect("quantum")}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-mono transition-all cursor-pointer ${
+                  genesisType === "quantum"
+                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-sm"
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 border border-transparent"
+                }`}
+              >
+                <span>💥 Big Bang</span>
+              </button>
+              <div className="w-[1px] h-4 bg-zinc-800 mx-1" />
+              <button
+                onClick={handleReplayGenesis}
+                title="Reiniciar ensamblado del orbe"
+                className="flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold bg-white text-black hover:bg-zinc-200 transition-colors cursor-pointer shadow-sm"
+              >
+                <RefreshCw className="w-3 h-3" />
+                <span>Replay</span>
+              </button>
+            </div>
+
             {/* Centered Canvas */}
             <div className="relative w-full h-full flex items-center justify-center">
               <div className="w-[85vw] h-[75vh] max-w-[760px] max-h-[760px] rounded-2xl overflow-hidden cursor-crosshair">
@@ -362,6 +483,8 @@ export default function Home() {
                   trail={1.4}
                   pull={40}
                   showEyes={true}
+                  genesisType={genesisType}
+                  genesisKey={genesisKey}
                   className="w-full h-full"
                 />
               </div>
@@ -439,6 +562,8 @@ export default function Home() {
                       trail={1.4}
                       pull={40}
                       showEyes={true}
+                      genesisType={genesisType}
+                      genesisKey={genesisKey}
                       className="w-full h-full"
                     />
                   ) : (
@@ -520,6 +645,13 @@ export default function Home() {
             </div>
           </section>
         )}
+
+        {/* VIEW 5: CRYPTO & STABLECOINS ASCII BOARD (Pinterest Aesthetics & Three.js r186) */}
+        {protoView === "crypto-board" && (
+          <section className="relative w-full min-h-screen pt-24 pb-36 px-4 sm:px-8 max-w-7xl mx-auto flex flex-col justify-center">
+            <CryptoAsciiBoard />
+          </section>
+        )}
       </div>
 
       {/* 4. Bencho Floating Glass Dock */}
@@ -536,6 +668,7 @@ export default function Home() {
         onOrbitToggle={() => setShowOrbitRing((prev) => !prev)}
         orbType={orbType}
         onOrbTypeToggle={() => setOrbType((prev) => (prev === "blob" ? "sphere" : "blob"))}
+        onReplayGenesis={handleReplayGenesis}
       />
     </main>
   );

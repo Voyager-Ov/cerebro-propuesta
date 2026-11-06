@@ -18,6 +18,7 @@ interface BenchoDockProps {
   onOrbitToggle: () => void;
   orbType?: "sphere" | "blob";
   onOrbTypeToggle?: () => void;
+  onReplayGenesis?: () => void;
 }
 
 export function BenchoDock({
@@ -33,6 +34,7 @@ export function BenchoDock({
   onOrbitToggle,
   orbType = "blob",
   onOrbTypeToggle,
+  onReplayGenesis,
 }: BenchoDockProps) {
   const currentPalette = PALETTES[paletteIndex % PALETTES.length];
   const dockRef = useRef<HTMLElement>(null);
@@ -135,6 +137,18 @@ export function BenchoDock({
           <span className="font-sans text-[11px] font-medium">
             {orbType === "blob" ? "Blobtar" : "Sphere"}
           </span>
+        </button>
+      )}
+
+      {/* 6. Replay Genesis Action */}
+      {onReplayGenesis && (
+        <button
+          onClick={onReplayGenesis}
+          title="Replay Génesis (Construcción con grafos 1→2→6)"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-xs text-blue-200 transition-colors cursor-pointer"
+        >
+          <Sparkles className="w-3 h-3 text-blue-400" />
+          <span className="font-sans text-[11px] font-semibold">Génesis</span>
         </button>
       )}
 

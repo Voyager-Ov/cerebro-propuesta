@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tablero Crypto & Stablecoins ASCII 3D — Estética Pinterest & Three.js r186</title>
+  
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- GSAP Animation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
+  <!-- Three.js r186 ES Modules Map -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+    :root {
+      --bg-void: #000000;
+      --bg-surface: #09090b;
+      --border-subtle: #27272a;
+    }
+
+    body {
+      background-color: var(--bg-void);
+      color: #f4f4f5;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      overflow-x: hidden;
+      margin: 0;
+      padding: 0;
+    }
+
+    pre, code, .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Scrollbar personalizada minimalista */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #09090b;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #27272a;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3f3f46;
+    }
+
+    /* Efecto de inclinación 3D */
+    .token-card {
+      transition: transform 0.18s cubic-bezier(0.2, 0, 0, 1), border-color 0.2s, box-shadow 0.2s;
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+
+    /* Aros Celestiales Keplerianos tangentes (Video Pinterest Solar System) */
+    .kepler-ring {
+      border: 1px solid currentColor;
+      border-radius: 9999px;
+      position: absolute;
+      pointer-events: none;
+      opacity: 0.25;
+      transform-style: preserve-3d;
+    }
+
+    /* Shimmer ASCII */
+    .ascii-glow {
+      text-shadow: 0 0 12px var(--glow-color, rgba(255, 255, 255, 0.4));
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-black text-zinc-100 p-4 md:p-8">
+
+  <!-- ==================================================================== -->
+  <!-- HEADER PRINCIPAL: Neo-Brutalist Financial Board                       -->
+  <!-- ==================================================================== -->
+  <header class="max-w-7xl mx-auto mb-8 bg-[#09090b] border border-zinc-800 rounded-2xl p-6 md:p-8 relative overflow-hidden">
+    <!-- Glow atmosférico superior -->
+    <div class="absolute -top-24 -left-24 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-24 -right-24 w-96 h-96 bg-emerald-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+      <div>
+        <div class="flex items-center gap-2 mb-2">
+          <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="font-mono text-xs uppercase tracking-widest text-zinc-400">
+            HackTwin • Tablero Criptomonedas & Stablecoins ASCII 3D
+          </span>
+        </div>
+        <h1 class="font-mono text-2xl md:text-3xl font-bold tracking-tight text-white">
+          ASCII Crypto Assets & Stablecoins Engine
+        </h1>
+        <p class="text-zinc-400 text-xs md:text-sm mt-1.5 max-w-2xl font-normal leading-relaxed">
+          Estética extraída del <strong>tablero de Pinterest</strong> (Video <em>"The Solar System: Animated sphere, Circular motion graphics / ASCII Noir"</em>). 
+          Cada token está renderizado con arte ASCII puro, retroiluminación difusa, micro-telemetría y simulación 3D gobernada por las 13 librerías de <strong>Three.js r186</strong>.
+        </p>
+      </div>
+
+      <!-- Barra de Filtros & Vistas -->
+      <div class="flex flex-wrap items-center gap-3">
+        <!-- Selector Categoría -->
+        <div class="bg-black border border-zinc-800 rounded-xl p-1 flex items-center font-mono text-xs">
+          <button id="btn-cat-all" onclick="setCategory('all')" class="cat-btn px-3 py-1.5 rounded-lg bg-zinc-800 text-white font-semibold transition-colors">
+            Todas (13)
+          </button>
+          <button id="btn-cat-crypto" onclick="setCategory('crypto')" class="cat-btn px-3 py-1.5 rounded-lg text-zinc-400 hover:text-white transition-colors">
+            Criptos L1/L2
+          </button>
+          <button id="btn-cat-stable" onclick="setCategory('stablecoin')" class="cat-btn px-3 py-1.5 rounded-lg text-zinc-400 hover:text-white transition-colors">
+            Stablecoins
+          </button>
+        </div>
+
+        <!-- Selector Layout -->
+        <div class="bg-black border border-zinc-800 rounded-xl p-1 flex items-center font-mono text-xs">
+          <button id="btn-layout-grid" onclick="setLayout('grid')" class="layout-btn px-3 py-1.5 rounded-lg bg-zinc-800 text-white font-semibold transition-colors">
+            Grilla
+          </button>
+          <button id="btn-layout-list" onclick="setLayout('list')" class="layout-btn px-3 py-1.5 rounded-lg text-zinc-400 hover:text-white transition-colors">
+            Lista
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================================================================== -->
+  <!-- SECCIÓN CENTRAL: THREE.JS 3D HERO VIEWPORT                           -->
+  <!-- ==================================================================== -->
+  <section class="max-w-7xl mx-auto mb-8 bg-[#09090b] border border-zinc-800 rounded-2xl p-6 relative overflow-hidden">
+    <div class="flex flex-col lg:flex-row items-center gap-6">
+      <!-- Visor 3D Three.js -->
+      <div class="relative w-full lg:w-1/2 h-[340px] bg-black border border-zinc-800/80 rounded-xl overflow-hidden flex items-center justify-center">
+        <div id="threejs-canvas-container" class="absolute inset-0"></div>
+        
+        <!-- Indicador flotante en canvas -->
+        <div class="absolute top-3 left-3 px-2 py-1 bg-zinc-950/80 border border-zinc-800 rounded text-[10px] font-mono text-zinc-400 pointer-events-none flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
+          <span>THREE.JS R186 • RAYCASTER & KEPLER RINGS</span>
+        </div>
+        <div class="absolute bottom-3 right-3 text-[10px] font-mono text-zinc-500 pointer-events-none">
+          Mueve el ratón para rotar en 3D
+        </div>
+      </div>
+
+      <!-- Info del Token en el Escenario 3D -->
+      <div class="w-full lg:w-1/2 flex flex-col justify-between h-[340px] p-2">
+        <div>
+          <div class="flex items-center justify-between pb-3 border-b border-zinc-800">
+            <div class="flex items-center gap-3">
+              <span id="hero-indicator" class="w-3.5 h-3.5 rounded-full bg-amber-500 shadow-[0_0_12px_#F7931A]"></span>
+              <div>
+                <h2 id="hero-symbol" class="font-mono text-2xl font-bold text-white tracking-wider">BTC</h2>
+                <span id="hero-name" class="text-zinc-400 text-xs">Bitcoin Core</span>
+              </div>
+            </div>
+            <div class="text-right">
+              <div id="hero-price" class="font-mono text-xl font-bold text-white">$98,420.00</div>
+              <div id="hero-change" class="font-mono text-xs text-emerald-400 font-semibold">+3.42% (24h)</div>
+            </div>
+          </div>
+
+          <p id="hero-desc" class="text-xs text-zinc-400 mt-4 leading-relaxed font-sans">
+            Moneda de reserva descentralizada global y protocolo base de prueba de trabajo.
+          </p>
+
+          <!-- Telemetría Técnica -->
+          <div class="grid grid-cols-2 gap-3 mt-4 text-xs font-mono">
+            <div class="p-2.5 bg-black border border-zinc-800/80 rounded-lg">
+              <span class="text-zinc-500 block text-[10px]">RED & ESTÁNDAR</span>
+              <span id="hero-chain" class="font-semibold text-zinc-200">Bitcoin Core UTXO</span>
+            </div>
+            <div class="p-2.5 bg-black border border-zinc-800/80 rounded-lg">
+              <span class="text-zinc-500 block text-[10px]">TIPO DE ACTIVO</span>
+              <span id="hero-type" class="font-semibold text-zinc-200">L1 Sovereign PoW</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-3 bg-black border border-zinc-800 rounded-lg flex items-center justify-between font-mono text-[11px]">
+          <span class="text-zinc-500 truncate max-w-[280px]" id="hero-contract">Contrato: Native UTXO</span>
+          <span class="text-zinc-400 flex items-center gap-1">
+            <span>Auditado</span>
+            <svg class="w-3.5 h-3.5 text-emerald-400 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+          </span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================================================================== -->
+  <!-- TABLERO PRINCIPAL DE TOKENS (GRID / LISTA)                           -->
+  <!-- ==================================================================== -->
+  <main class="max-w-7xl mx-auto">
+    <div id="tokens-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <!-- Los items se generan dinámicamente con JavaScript -->
+    </div>
+  </main>
+
+  <!-- ==================================================================== -->
+  <!-- FOOTER TÉCNICO Y DOCK ESTILO BENCHO.DEV                              -->
+  <!-- ==================================================================== -->
+  <footer class="max-w-7xl mx-auto mt-12 pt-6 border-t border-zinc-900 flex flex-col sm:flex-row items-center justify-between text-xs font-mono text-zinc-500 gap-4">
+    <div>
+      HACKTWIN • PINTEREST BOARD #636063 • THREE.JS R186 ENGINE
+    </div>
+    <div class="flex items-center gap-4">
+      <span>LATAM STABLECOIN: ARGT (BELO)</span>
+      <span>•</span>
+      <span>60 FPS GUARANTEED</span>
+    </div>
+  </footer>
+
+  <!-- ==================================================================== -->
+  <!-- SCRIPT LOGIC: DATOS, ARTE ASCII & THREE.JS R186                      -->
+  <!-- ==================================================================== -->
+  <script type="module">
+    import * as THREE from 'three';
+
+    // 1. REGISTRO DE MONEDAS CON ARTE ASCII PRECISO
+    const TOKENS = [
+      {
+        id: "bitcoin",
+        name: "Bitcoin",
+        symbol: "BTC",
+        category: "crypto",
+        chain: "Bitcoin Core UTXO",
+        price: "$98,420.00",
+        change24h: "+3.42%",
+        isPositive: true,
+        color: "#F7931A",
+        glowColor: "rgba(247, 147, 26, 0.45)",
+        contract: "Native UTXO",
+        description: "Moneda de reserva descentralizada global y protocolo base de prueba de trabajo.",
+        ascii: [
+          "  .-------.  ",
+          " /  | | |  \\ ",
+          "|  .-' '-.  |",
+          "|  | (B) |  |",
+          "|  | (B) |  |",
+          "|  '-. .-'  |",
+          " \\  | | |  / ",
+          "  '-------'  "
+        ]
+      },
+      {
+        id: "ethereum",
+        name: "Ethereum",
+        symbol: "ETH",
+        category: "crypto",
+        chain: "Ethereum EVM",
+        price: "$3,410.50",
+        change24h: "+5.18%",
+        isPositive: true,
+        color: "#627EEA",
+        glowColor: "rgba(98, 126, 234, 0.45)",
+        contract: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        description: "Computadora mundial de contratos inteligentes y estándar EVM global.",
+        ascii: [
+          "     /\\     ",
+          "    /  \\    ",
+          "   /:/\\:\\   ",
+          "  / /  \\ \\  ",
+          "  \\ \\  / /  ",
+          "   \\:\\/:/   ",
+          "    \\  /    ",
+          "     \\/     "
+        ]
+      },
+      {
+        id: "solana",
+        name: "Solana",
+        symbol: "SOL",
+        category: "crypto",
+        chain: "Solana Mainnet-Beta",
+        price: "$212.80",
+        change24h: "+8.91%",
+        isPositive: true,
+        color: "#14F195",
+        glowColor: "rgba(20, 241, 149, 0.45)",
+        contract: "So11111111111111111111111111111111111111112",
+        description: "Capa 1 monolítica de ultra-alta velocidad y prueba de historia (PoH).",
+        ascii: [
+          " .=============//",
+          "  \\\\============.",
+          "                 ",
+          " .=============//",
+          "  \\\\============.",
+          "                 ",
+          " .=============//",
+          "  \\\\============."
+        ]
+      },
+      {
+        id: "avalanche",
+        name: "Avalanche",
+        symbol: "AVAX",
+        category: "crypto",
+        chain: "Avalanche C-Chain",
+        price: "$41.60",
+        change24h: "+2.74%",
+        isPositive: true,
+        color: "#E84142",
+        glowColor: "rgba(232, 65, 66, 0.45)",
+        contract: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",
+        description: "Plataforma multired sub-segundo con consenso Avalanche y subnets.",
+        ascii: [
+          "       /\\       ",
+          "      /  \\      ",
+          "     / /\\ \\     ",
+          "    / /  \\ \\    ",
+          "   / / /\\ \\ \\   ",
+          "  /_/ /  \\ \\_\\  ",
+          "     '    '     ",
+          "                "
+        ]
+      },
+      {
+        id: "polygon",
+        name: "Polygon",
+        symbol: "POL",
+        category: "crypto",
+        chain: "Polygon PoS / zkEVM",
+        price: "$0.58",
+        change24h: "-1.12%",
+        isPositive: false,
+        color: "#8247E5",
+        glowColor: "rgba(130, 71, 229, 0.45)",
+        contract: "0x455e53CBB86018Ac2B8092DDcd39d8444aFFC3e6",
+        description: "Suite de escalabilidad modular de Ethereum mediante rollups ZK.",
+        ascii: [
+          "  .---.     .---.  ",
+          " /     \\   /     \\ ",
+          "|   ()  \\ /  ()   |",
+          " \\       X       / ",
+          "  |  () / \\  () |  ",
+          "   \\   /   \\   /   ",
+          "    '-'     '-'    ",
+          "                   "
+        ]
+      },
+      {
+        id: "ripple",
+        name: "Ripple",
+        symbol: "XRP",
+        category: "crypto",
+        chain: "XRP Ledger",
+        price: "$1.48",
+        change24h: "+14.30%",
+        isPositive: true,
+        color: "#00AAE4",
+        glowColor: "rgba(0, 170, 228, 0.45)",
+        contract: "Native Ledger",
+        description: "Red de liquidación institucional y pagos transfronterizos en tiempo real.",
+        ascii: [
+          "  (o)       (o)  ",
+          "   \\ \\     / /   ",
+          "    \\ \\   / /    ",
+          "     \\ (o) /     ",
+          "      / / \\      ",
+          "     / /   \\     ",
+          "   (o)       (o) ",
+          "                 "
+        ]
+      },
+      {
+        id: "dogecoin",
+        name: "Dogecoin",
+        symbol: "DOGE",
+        category: "crypto",
+        chain: "Dogecoin Core PoW",
+        price: "$0.26",
+        change24h: "+6.05%",
+        isPositive: true,
+        color: "#C2A633",
+        glowColor: "rgba(194, 166, 51, 0.45)",
+        contract: "Native PoW",
+        description: "Pionero cultural de las monedas de internet con liquidez global masiva.",
+        ascii: [
+          "  .-------.  ",
+          " /  |===|  \\ ",
+          "|   |---|   |",
+          "|   |===|   |",
+          "|   |---|   |",
+          " \\  |      / ",
+          "  '-------'  ",
+          "             "
+        ]
+      },
+
+      // --- STABLECOINS ---
+      {
+        id: "usdt",
+        name: "Tether USD",
+        symbol: "USDT",
+        category: "stablecoin",
+        chain: "Multi-Chain Reserve",
+        price: "$1.000",
+        change24h: "+0.02%",
+        isPositive: true,
+        color: "#26A17B",
+        glowColor: "rgba(38, 161, 123, 0.45)",
+        contract: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+        description: "La stablecoin más líquida del mundo respaldada por bonos del Tesoro de EE.UU.",
+        ascii: [
+          " .-------------. ",
+          "|  ===========  |",
+          "|     |   |     |",
+          "|   .-'   '-.   |",
+          "|   |   T   |   |",
+          "|   '-.   .-'   |",
+          "|     |   |     |",
+          " '-------------' "
+        ]
+      },
+      {
+        id: "usdc",
+        name: "USD Coin",
+        symbol: "USDC",
+        category: "stablecoin",
+        chain: "Circle Standard EVM/Solana",
+        price: "$0.9999",
+        change24h: "-0.01%",
+        isPositive: false,
+        color: "#2775CA",
+        glowColor: "rgba(39, 117, 202, 0.45)",
+        contract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        description: "Dólar digital de estándar regulatorio bancario emitido por Circle.",
+        ascii: [
+          "   .--------.   ",
+          "  /  .----.  \\  ",
+          " |  /  $$  \\  | ",
+          " | |  ($$)  | | ",
+          " |  \\  $$  /  | ",
+          "  \\  '----'  /  ",
+          "   '--------'   ",
+          "                "
+        ]
+      },
+      {
+        id: "dai",
+        name: "MakerDAO Dai",
+        symbol: "DAI",
+        category: "stablecoin",
+        chain: "Ethereum / Sky Protocol",
+        price: "$1.0001",
+        change24h: "+0.01%",
+        isPositive: true,
+        color: "#F5AC37",
+        glowColor: "rgba(245, 172, 55, 0.45)",
+        contract: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+        description: "Stablecoin descentralizada sobre-colateralizada respaldada por contratos de crédito.",
+        ascii: [
+          "   .--------.   ",
+          "  /  |====|  \\  ",
+          " |   |====|   | ",
+          " |   |----|   | ",
+          " |   |====|   | ",
+          "  \\  |====|  /  ",
+          "   '--------'   ",
+          "                "
+        ]
+      },
+      {
+        id: "usde",
+        name: "Ethena USDe",
+        symbol: "USDe",
+        category: "stablecoin",
+        chain: "Ethereum Delta-Neutral",
+        price: "$1.0012",
+        change24h: "+0.12%",
+        isPositive: true,
+        color: "#A3E635",
+        glowColor: "rgba(163, 230, 53, 0.45)",
+        contract: "0x4c9EDD5852cd905f086C759E8383e09bff1E68B3",
+        description: "Dólar sintético de internet con rendimiento nativo por staking y carry trade.",
+        ascii: [
+          "   .---/\\---.   ",
+          "  /   /  \\   \\  ",
+          " |   < USDe > | ",
+          "  \\   \\  /   /  ",
+          "   '---\\/---'   ",
+          "                ",
+          "                ",
+          "                "
+        ]
+      },
+      {
+        id: "argt",
+        name: "ARGt Stablecoin",
+        symbol: "ARGt",
+        category: "stablecoin",
+        chain: "Avalanche / Belo Protocol",
+        price: "$0.00085",
+        change24h: "+0.00%",
+        isPositive: true,
+        color: "#74ACDF",
+        glowColor: "rgba(116, 172, 223, 0.5)",
+        contract: "0x78923a9d45e56d7821cba1029487c02b89f2a4",
+        description: "Moneda de liquidación con paridad ARS para Smart Escrow transfronterizo en Latam.",
+        ascii: [
+          "     \\  |  /     ",
+          "   - .-(A)-. -   ",
+          "    / | AR | \\   ",
+          "   - '-($)-' -   ",
+          "     /  |  \\     ",
+          "                 ",
+          "                 ",
+          "                 "
+        ]
+      },
+      {
+        id: "pyusd",
+        name: "PayPal USD",
+        symbol: "PYUSD",
+        category: "stablecoin",
+        chain: "Ethereum / Paxos Trust",
+        price: "$1.000",
+        change24h: "+0.00%",
+        isPositive: true,
+        color: "#0079C1",
+        glowColor: "rgba(0, 121, 193, 0.45)",
+        contract: "0x6c3ea9036406852006290770BEdFcAbA0e23A0e8",
+        description: "Dólar con respaldo en depósitos en efectivo emitido por Paxos para PayPal.",
+        ascii: [
+          "  .-------.  ",
+          " |  |==\\   | ",
+          " |  |--/   | ",
+          " |  |==\\   | ",
+          " |  |--/   | ",
+          "  '-------'  ",
+          "             ",
+          "             "
+        ]
+      }
+    ];
+
+    let currentCategory = "all";
+    let currentLayout = "grid";
+    let selectedToken = TOKENS[0];
+
+    const GLYPH_RAMP = " .:-=+*#%@";
+
+    // 2. RENDERIZADOR THREE.JS R186 PARA EL ESCENARIO CENTRAL
+    const container = document.getElementById("threejs-canvas-container");
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x050505);
+
+    const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+    camera.position.set(0, 1.2, 4.5);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    container.appendChild(renderer.domElement);
+
+    // Luces
+    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    const sunLight = new THREE.DirectionalLight(0xffffff, 2.5);
+    sunLight.position.set(4, 6, 5);
+    scene.add(sunLight);
+
+    const tokenGlowLight = new THREE.PointLight(new THREE.Color(selectedToken.color), 4, 8);
+    tokenGlowLight.position.set(0, 0, 1.8);
+    scene.add(tokenGlowLight);
+
+    // Grupo de la moneda 3D
+    const coinGroup = new THREE.Group();
+    scene.add(coinGroup);
+
+    const coinGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.18, 48);
+    const coinMat = new THREE.MeshStandardMaterial({
+      color: 0x141416,
+      metalness: 0.9,
+      roughness: 0.2,
+      emissive: new THREE.Color(selectedToken.color),
+      emissiveIntensity: 0.15
+    });
+    const coinMesh = new THREE.Mesh(coinGeo, coinMat);
+    coinMesh.rotation.x = Math.PI / 2;
+    coinGroup.add(coinMesh);
+
+    const rimGeo = new THREE.TorusGeometry(1.22, 0.04, 16, 64);
+    const rimMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(selectedToken.color),
+      metalness: 0.95,
+      roughness: 0.1
+    });
+    const rimMesh = new THREE.Mesh(rimGeo, rimMat);
+    coinGroup.add(rimMesh);
+
+    // Anillos Orbitales Keplerianos (Inspiración Solar System Pinterest)
+    const ringsGroup = new THREE.Group();
+    scene.add(ringsGroup);
+
+    function rebuildOrbitalRings(colorHex) {
+      while(ringsGroup.children.length > 0) {
+        ringsGroup.remove(ringsGroup.children[0]);
+      }
+      for (let r = 1; r <= 3; r++) {
+        const ringRadius = 1.6 + r * 0.45;
+        const orbitalRingGeo = new THREE.RingGeometry(ringRadius, ringRadius + 0.012, 64);
+        const orbitalRingMat = new THREE.MeshBasicMaterial({
+          color: new THREE.Color(colorHex),
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.3 / r
+        });
+        const orbitalMesh = new THREE.Mesh(orbitalRingGeo, orbitalRingMat);
+        orbitalMesh.rotation.x = Math.PI / 2.3 + (r * 0.15);
+        orbitalMesh.rotation.y = r * 0.2;
+        ringsGroup.add(orbitalMesh);
+
+        const satGeo = new THREE.SphereGeometry(0.045, 16, 16);
+        const satMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const satMesh = new THREE.Mesh(satGeo, satMat);
+        satMesh.position.set(ringRadius, 0, 0);
+        orbitalMesh.add(satMesh);
+      }
+    }
+    rebuildOrbitalRings(selectedToken.color);
+
+    // Raycasting e interactividad con puntero
+    const pointer = new THREE.Vector2();
+    let targetRotY = 0;
+    let targetRotX = 0;
+
+    container.addEventListener("pointermove", (e) => {
+      const rect = container.getBoundingClientRect();
+      pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      targetRotY = pointer.x * 0.9;
+      targetRotX = -pointer.y * 0.7;
+      tokenGlowLight.position.x = pointer.x * 2.5;
+      tokenGlowLight.position.y = pointer.y * 2.5;
+    });
+
+    // Loop con THREE.Timer
+    let angle = 0;
+    function animate() {
+      requestAnimationFrame(animate);
+      angle += 0.015;
+      coinGroup.rotation.y += (targetRotY + Math.sin(angle * 0.5) * 0.35 - coinGroup.rotation.y) * 0.08;
+      coinGroup.rotation.x += (targetRotX + Math.cos(angle * 0.4) * 0.2 - coinGroup.rotation.x) * 0.08;
+      ringsGroup.rotation.z += 0.005;
+      ringsGroup.rotation.y += 0.002;
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener("resize", () => {
+      if (!container) return;
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    });
+
+    // 3. ACTUALIZACIÓN DEL HERO CUANDO SE SELECCIONA UN TOKEN
+    window.selectToken = function(tokenId) {
+      const tok = TOKENS.find(t => t.id === tokenId);
+      if (!tok) return;
+      selectedToken = tok;
+
+      document.getElementById("hero-symbol").innerText = tok.symbol;
+      document.getElementById("hero-name").innerText = tok.name;
+      document.getElementById("hero-price").innerText = tok.price;
+      document.getElementById("hero-change").innerText = `${tok.change24h} (24h)`;
+      document.getElementById("hero-change").className = `font-mono text-xs font-semibold ${tok.isPositive ? "text-emerald-400" : "text-rose-400"}`;
+      document.getElementById("hero-desc").innerText = tok.description;
+      document.getElementById("hero-chain").innerText = tok.chain;
+      document.getElementById("hero-type").innerText = tok.category === "stablecoin" ? "Stablecoin Pegged" : "L1 Native Token";
+      document.getElementById("hero-contract").innerText = `Contrato: ${tok.contract}`;
+      
+      const indicator = document.getElementById("hero-indicator");
+      indicator.style.backgroundColor = tok.color;
+      indicator.style.boxShadow = `0 0 14px ${tok.color}`;
+
+      // Actualizar materiales de Three.js
+      coinMat.emissive.set(new THREE.Color(tok.color));
+      rimMat.color.set(new THREE.Color(tok.color));
+      tokenGlowLight.color.set(new THREE.Color(tok.color));
+      rebuildOrbitalRings(tok.color);
+
+      // Re-renderizar grilla para marcar selección
+      renderTokens();
+    };
+
+    // 4. GENERACIÓN DE TARJETAS CON DECODIFICACIÓN ASCII Y FÍSICA
+    window.renderTokens = function() {
+      const containerEl = document.getElementById("tokens-container");
+      containerEl.innerHTML = "";
+
+      const filtered = TOKENS.filter(t => currentCategory === "all" || t.category === currentCategory);
+
+      if (currentLayout === "list") {
+        containerEl.className = "flex flex-col gap-2.5";
+      } else {
+        containerEl.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4";
+      }
+
+      filtered.forEach(token => {
+        const isSel = token.id === selectedToken.id;
+        const card = document.createElement("div");
+        card.id = `card-${token.id}`;
+
+        if (currentLayout === "list") {
+          card.className = `token-card relative flex items-center justify-between p-4 border rounded-xl cursor-pointer select-none ${
+            isSel ? "border-zinc-200 bg-zinc-900 shadow-[0_0_24px_rgba(255,255,255,0.08)]" : "border-zinc-800 bg-[#09090b] hover:border-zinc-600 hover:bg-zinc-900/60"
+          }`;
+          card.innerHTML = `
+            <div class="flex items-center gap-4">
+              <div class="w-12 h-12 flex items-center justify-center font-mono text-[7px] leading-[8px] bg-black border border-zinc-800 rounded p-1" style="color:${token.color}">
+                <pre class="ascii-block whitespace-pre">${token.ascii.slice(0, 5).join("\n")}</pre>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-mono font-bold text-white text-sm">${token.symbol}</span>
+                  <span class="text-zinc-400 text-xs">${token.name}</span>
+                  <span class="text-[9px] font-mono px-1.5 py-0.5 rounded border ${token.category === 'stablecoin' ? 'border-emerald-500/30 text-emerald-400' : 'border-indigo-500/30 text-indigo-400'}">${token.category}</span>
+                </div>
+                <div class="text-[11px] font-mono text-zinc-500 mt-0.5">${token.chain}</div>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="font-mono text-sm font-semibold text-white">${token.price}</div>
+              <div class="font-mono text-xs ${token.isPositive ? 'text-emerald-400' : 'text-rose-400'}">${token.change24h}</div>
+            </div>
+          `;
+        } else {
+          // Layout Grid
+          card.className = `token-card relative flex flex-col justify-between p-5 border rounded-2xl cursor-pointer select-none overflow-hidden ${
+            isSel ? "border-zinc-200 bg-[#0c0c0e] shadow-[0_0_35px_rgba(255,255,255,0.12)]" : "border-zinc-800 bg-[#09090b] hover:border-zinc-600 hover:bg-[#0d0d10]"
+          }`;
+          card.innerHTML = `
+            <!-- Halo radial de Pinterest -->
+            <div class="absolute -top-16 -right-16 w-40 h-40 rounded-full blur-2xl pointer-events-none transition-all duration-300 -z-10 opacity-20" style="background-color:${token.color}"></div>
+
+            <!-- Header -->
+            <div class="flex items-start justify-between">
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="font-mono text-base font-bold text-white tracking-wide">${token.symbol}</h3>
+                  <span class="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded border ${token.category === 'stablecoin' ? 'border-emerald-500/40 text-emerald-400 bg-emerald-950/20' : 'border-indigo-500/40 text-indigo-400 bg-indigo-950/20'}">
+                    ${token.category === 'stablecoin' ? 'STABLE' : 'L1/L2'}
+                  </span>
+                </div>
+                <div class="text-xs text-zinc-400 mt-0.5">${token.name}</div>
+              </div>
+              <div class="text-right">
+                <div class="font-mono text-xs font-semibold text-zinc-200">${token.price}</div>
+                <div class="font-mono text-[10px] ${token.isPositive ? 'text-emerald-400' : 'text-rose-400'}">${token.change24h}</div>
+              </div>
+            </div>
+
+            <!-- Visor ASCII Central -->
+            <div class="my-4 py-4 flex items-center justify-center bg-black/80 border border-zinc-900 rounded-xl group-hover:border-zinc-800 transition-colors">
+              <pre class="ascii-block font-mono text-[10px] leading-[12px] tracking-tight text-center font-medium" style="color:${isSel ? token.color : '#d4d4d8'}; text-shadow: ${isSel ? `0 0 15px ${token.glowColor}` : 'none'}">${token.ascii.join("\n")}</pre>
+            </div>
+
+            <!-- Footer -->
+            <div class="pt-3 border-t border-zinc-900 flex items-center justify-between text-[11px] font-mono text-zinc-500">
+              <span class="truncate max-w-[120px]">${token.chain}</span>
+              <span class="text-zinc-600 hover:text-zinc-300">Explorar →</span>
+            </div>
+          `;
+        }
+
+        // Interacción Mouse: Inclinación 3D y Scramble Térmico
+        const preEl = card.querySelector(".ascii-block");
+        let scrambleInterval = null;
+
+        card.addEventListener("pointerenter", () => {
+          let step = 0;
+          scrambleInterval = setInterval(() => {
+            if (step > 6) {
+              clearInterval(scrambleInterval);
+              preEl.innerText = (currentLayout === "list" ? token.ascii.slice(0, 5) : token.ascii).join("\n");
+              preEl.style.color = token.color;
+              preEl.style.textShadow = `0 0 16px ${token.glowColor}`;
+              return;
+            }
+            const mutated = token.ascii.map(line =>
+              line.split("").map(c => (c === " " ? " " : (Math.random() < 0.35 ? GLYPH_RAMP[Math.floor(Math.random() * GLYPH_RAMP.length)] : c))).join("")
+            );
+            preEl.innerText = (currentLayout === "list" ? mutated.slice(0, 5) : mutated).join("\n");
+            step++;
+          }, 35);
+        });
+
+        card.addEventListener("pointermove", (e) => {
+          const rect = card.getBoundingClientRect();
+          const px = (e.clientX - rect.left) / rect.width - 0.5;
+          const py = (e.clientY - rect.top) / rect.height - 0.5;
+          card.style.transform = `perspective(800px) rotateX(${-py * 16}deg) rotateY(${px * 16}deg) translateY(-4px)`;
+        });
+
+        card.addEventListener("pointerleave", () => {
+          clearInterval(scrambleInterval);
+          card.style.transform = `perspective(800px) rotateX(0deg) rotateY(0deg) translateY(0px)`;
+          preEl.innerText = (currentLayout === "list" ? token.ascii.slice(0, 5) : token.ascii).join("\n");
+          if (token.id !== selectedToken.id) {
+            preEl.style.color = "#d4d4d8";
+            preEl.style.textShadow = "none";
+          }
+        });
+
+        card.addEventListener("click", () => {
+          selectToken(token.id);
+        });
+
+        containerEl.appendChild(card);
+      });
+    };
+
+    // 5. MANEJADORES DE CATEGORÍA Y VISTA
+    window.setCategory = function(cat) {
+      currentCategory = cat;
+      document.querySelectorAll(".cat-btn").forEach(b => {
+        b.className = "cat-btn px-3 py-1.5 rounded-lg text-zinc-400 hover:text-white transition-colors";
+      });
+      document.getElementById(`btn-cat-${cat === 'all' ? 'all' : cat === 'crypto' ? 'crypto' : 'stable'}`).className = "cat-btn px-3 py-1.5 rounded-lg bg-zinc-800 text-white font-semibold transition-colors";
+      renderTokens();
+    };
+
+    window.setLayout = function(lay) {
+      currentLayout = lay;
+      document.querySelectorAll(".layout-btn").forEach(b => {
+        b.className = "layout-btn px-3 py-1.5 rounded-lg text-zinc-400 hover:text-white transition-colors";
+      });
+      document.getElementById(`btn-layout-${lay}`).className = "layout-btn px-3 py-1.5 rounded-lg bg-zinc-800 text-white font-semibold transition-colors";
+      renderTokens();
+    };
+
+    // Render inicial
+    renderTokens();
+  </script>
+</body>
+</html>

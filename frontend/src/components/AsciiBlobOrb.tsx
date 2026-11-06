@@ -94,6 +94,8 @@ const THERMAL_COLD_THRESHOLD = 0.04;
 const SHOCKWAVE_DURATION = 1.8;
 const SHIMMER_INTERVAL_S = 0.07;
 
+export type GenesisMode = "graph" | "fibonacci" | "quantum";
+
 export interface AsciiBlobOrbProps {
   mode?: BlobOrbMode;
   palette?: BlobPaletteName;
@@ -106,6 +108,9 @@ export interface AsciiBlobOrbProps {
   showEyes?: boolean;
   className?: string;
   onBlobClick?: () => void;
+  genesisType?: GenesisMode;
+  genesisKey?: number;
+  onGenesisComplete?: () => void;
 }
 
 export function AsciiBlobOrb({
@@ -120,6 +125,9 @@ export function AsciiBlobOrb({
   showEyes = true,
   className = "w-full h-full",
   onBlobClick,
+  genesisType = "graph",
+  genesisKey = 0,
+  onGenesisComplete,
 }: AsciiBlobOrbProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -134,6 +142,8 @@ export function AsciiBlobOrb({
     pull,
     showEyes,
     particleDensity,
+    genesisType,
+    genesisKey,
   });
 
   useEffect(() => {
@@ -147,8 +157,22 @@ export function AsciiBlobOrb({
       pull,
       showEyes,
       particleDensity,
+      genesisType,
+      genesisKey,
     };
-  }, [mode, palette, glyphs, reach, force, trail, pull, showEyes, particleDensity]);
+  }, [
+    mode,
+    palette,
+    glyphs,
+    reach,
+    force,
+    trail,
+    pull,
+    showEyes,
+    particleDensity,
+    genesisType,
+    genesisKey,
+  ]);
 
   // Parpadeo de ojos Blobatar orgánico
   const blinkStateRef = useRef({ progress: 1.0, isBlinking: false });
@@ -300,6 +324,24 @@ export function AsciiBlobOrb({
 
     initParticles();
 
+    // Pares de nodos fijos para sinapsis en modo pensar
+    let synapsePairs: [number, number][] = [];
+    const buildSynapses = () => {
+      synapsePairs = [];
+      const N = particleCount;
+      for (let s = 0; s < 32; s++) {
+        const a = Math.floor(Math.random() * (N * 0.70));
+        const b = Math.floor(Math.random() * (N * 0.70));
+        if (a !== b) synapsePairs.push([a, b]);
+      }
+    };
+    buildSynapses();
+
+    // Control de tiempo para la Génesis del Orbe
+    let genesisElapsed = 0;
+    let isGenesisDone = false;
+    let lastGenesisKey = knobsRef.current.genesisKey;
+
     /* ── Estado Dinámico del Puntero y Ondas ── */
     const pointer = {
       x: -999,
@@ -417,7 +459,7 @@ export function AsciiBlobOrb({
 
     /* ── Ciclo de Animación ── */
     let animId = 0;
-    let prevTime = performance.now();
+    let prevTime = -1;
     let tickShimmer = 0;
     let dealCounter = 0;
     let globalAngle = 0;
@@ -429,8 +471,12 @@ export function AsciiBlobOrb({
     let smoothEyeY = 0.0;
 
     const render = (currentTime: number) => {
-      const rawDt = Math.min(0.05, (currentTime - prevTime) / 1000);
-      const dtFrames = clamp((currentTime - prevTime) / 16.67, 0.1, 2.5);
+      if (prevTime < 0) {
+        prevTime = currentTime;
+      }
+      const deltaMs = Math.max(0, currentTime - prevTime);
+      const rawDt = Math.min(0.05, deltaMs / 1000);
+      const dtFrames = clamp(deltaMs / 16.67, 0.1, 2.5);
       prevTime = currentTime;
 
       const knobs = knobsRef.current;
@@ -475,27 +521,29 @@ export function AsciiBlobOrb({
 
       // En reposo (status quo): smoothExcitation = 0 -> morphAmp = 0 (cero movimiento autónomo)
       let morphSpeed = 0.35 + activeIntensity * 1.5;
-      let morphAmp1 = activeIntensity * 0.075;
-      let morphAmp2 = activeIntensity * 0.045;
-      let morphAmp3 = activeIntensity * 0.025;
+      let morphAmp1 = activeIntensity * 0.055;
+      let morphAmp2 = activeIntensity * 0.035;
+      let morphAmp3 = activeIntensity * 0.018;
 
-      // Modos externos (voz, audio, pensamiento)
+      // MODOS EXTERNOS REFINADOS (sin expansión brusca ni morph falso de hover)
       if (knobs.mode === "listening" || knobs.mode === "voice") {
-        morphSpeed = 2.0;
-        morphAmp1 = 0.12;
-        morphAmp2 = 0.08;
-        morphAmp3 = 0.05;
+        // Cero expansión física: orbe calmado y receptivo con micro-vibración acústica perimetral
+        morphSpeed = 0.45;
+        morphAmp1 = 0.0;
+        morphAmp2 = 0.0;
+        morphAmp3 = 0.0;
       } else if (knobs.mode === "thinking") {
-        morphSpeed = 3.2;
-        morphAmp1 = 0.15;
-        morphAmp2 = 0.10;
-        morphAmp3 = 0.07;
+        // Cero deformación de hover: orbe sereno con sinapsis neuronales internas activas
+        morphSpeed = 0.40;
+        morphAmp1 = 0.0;
+        morphAmp2 = 0.0;
+        morphAmp3 = 0.0;
       } else if (knobs.mode === "speaking") {
-        const speechPulse = Math.sin(currentTime * 0.012) * 0.5 + 0.5;
-        morphSpeed = 1.5 + speechPulse * 1.4;
-        morphAmp1 = 0.07 + speechPulse * 0.09;
-        morphAmp2 = 0.04 + speechPulse * 0.06;
-        morphAmp3 = 0.03;
+        // Cero inflación de volumen: modulación sutil de voz centrada
+        morphSpeed = 0.50;
+        morphAmp1 = 0.0;
+        morphAmp2 = 0.0;
+        morphAmp3 = 0.0;
       }
 
       const cx = width * 0.5;
@@ -507,24 +555,151 @@ export function AsciiBlobOrb({
 
       const baseR = Math.min(width, height) * 0.35;
 
-      /* ── 2. OJOS BLOBATAR EXPRESIVOS (LOOK-AT INERCIAL GLOBAL) ── */
-      // Sigue el puntero en toda la ventana de forma análoga a blobatar/gaze
+      /* ── GÉNESIS INTERACTIVA DEL ORBE (GRAFOS 1→2→6→EXPONENCIAL) ── */
+      if (knobs.genesisKey !== lastGenesisKey) {
+        genesisElapsed = 0;
+        isGenesisDone = false;
+        lastGenesisKey = knobs.genesisKey;
+      }
+
+      if (!isGenesisDone) {
+        genesisElapsed += rawDt;
+      }
+
+      const gType = knobs.genesisType || "graph";
+
+      let visCount = particleCount;
+      let eyeOpenFactor = 1.0;
+      let genesisStage = 0;
+
+      if (!isGenesisDone) {
+        if (gType === "graph") {
+          if (genesisElapsed < 0.70) {
+            // Fase 1: 1 nodo raíz en el centro
+            genesisStage = 1;
+            visCount = 1;
+            eyeOpenFactor = 0.0;
+            particles.hx[0] = cx;
+            particles.hy[0] = cy;
+            particles.x[0] = cx;
+            particles.y[0] = cy;
+            particles.vx[0] = 0;
+            particles.vy[0] = 0;
+          } else if (genesisElapsed < 1.50) {
+            // Fase 2: 2 nodos bifurcándose a los lados con arista
+            genesisStage = 2;
+            visCount = 2;
+            eyeOpenFactor = 0.0;
+            const p = (genesisElapsed - 0.70) / 0.80;
+            const easeP = Math.sin(p * Math.PI * 0.5);
+            const sep = baseR * 0.32 * easeP;
+            particles.hx[0] = cx - sep;
+            particles.hy[0] = cy;
+            particles.hx[1] = cx + sep;
+            particles.hy[1] = cy;
+          } else if (genesisElapsed < 2.30) {
+            // Fase 3: 6 nodos en constelación hexagonal
+            genesisStage = 3;
+            visCount = 6;
+            eyeOpenFactor = 0.0;
+            const p = (genesisElapsed - 1.50) / 0.80;
+            const hexR = baseR * 0.45 * Math.min(1.0, p * 1.15);
+            const rot = p * 0.35;
+            for (let k = 0; k < 6; k++) {
+              const ang = (k * Math.PI) / 3 + rot;
+              particles.hx[k] = cx + Math.cos(ang) * hexR;
+              particles.hy[k] = cy + Math.sin(ang) * hexR;
+            }
+          } else if (genesisElapsed < 3.40) {
+            // Fase 4: Proliferación exponencial hacia la nube completa
+            genesisStage = 4;
+            const p = (genesisElapsed - 2.30) / 1.10;
+            const expCount = Math.round(6 + (particleCount - 6) * Math.pow(p, 2.2));
+            visCount = Math.min(particleCount, Math.max(6, expCount));
+            eyeOpenFactor = 0.0;
+          } else if (genesisElapsed < 4.10) {
+            // Fase 5: Consolidación & Despertar Ocular
+            genesisStage = 5;
+            visCount = particleCount;
+            const p = (genesisElapsed - 3.40) / 0.70;
+            eyeOpenFactor = Math.sin(p * Math.PI * 0.5);
+          } else {
+            // Genesis completado
+            isGenesisDone = true;
+            visCount = particleCount;
+            eyeOpenFactor = 1.0;
+            if (onGenesisComplete) onGenesisComplete();
+          }
+        } else if (gType === "fibonacci") {
+          if (genesisElapsed < 2.80) {
+            const p = genesisElapsed / 2.80;
+            visCount = Math.max(1, Math.round(particleCount * Math.pow(p, 1.5)));
+            eyeOpenFactor = 0.0;
+          } else if (genesisElapsed < 3.50) {
+            visCount = particleCount;
+            eyeOpenFactor = Math.sin(((genesisElapsed - 2.80) / 0.70) * Math.PI * 0.5);
+          } else {
+            isGenesisDone = true;
+            visCount = particleCount;
+            eyeOpenFactor = 1.0;
+            if (onGenesisComplete) onGenesisComplete();
+          }
+        } else if (gType === "quantum") {
+          if (genesisElapsed < 1.0) {
+            const p = 1.0 - genesisElapsed / 1.0;
+            visCount = particleCount;
+            eyeOpenFactor = 0.0;
+            for (let i = 0; i < particleCount; i++) {
+              particles.hx[i] = cx + (particles.hx[i] - cx) * p * 0.12;
+              particles.hy[i] = cy + (particles.hy[i] - cy) * p * 0.12;
+              particles.heat[i] = 0.85;
+            }
+          } else if (genesisElapsed < 1.4) {
+            visCount = particleCount;
+            eyeOpenFactor = 0.0;
+          } else if (genesisElapsed < 3.2) {
+            visCount = particleCount;
+            eyeOpenFactor = Math.sin(((genesisElapsed - 1.4) / 1.8) * Math.PI * 0.5);
+          } else {
+            isGenesisDone = true;
+            visCount = particleCount;
+            eyeOpenFactor = 1.0;
+            if (onGenesisComplete) onGenesisComplete();
+          }
+        }
+      }
+
+      /* ── 2. SEGUIMIENTO OCULAR DE ALTA FUERZA Y PRESENCIA ── */
       let targetEyeX = 0;
       let targetEyeY = 0;
 
-      if (!Number.isNaN(globalMouse.x)) {
+      if (knobs.mode === "thinking") {
+        // En modo pensar: mirada reflexiva cognoscente hacia arriba-izquierda con micro-deriva
+        targetEyeX = -baseR * 0.16 + Math.sin(currentTime * 0.0025) * 5;
+        targetEyeY = -baseR * 0.18 + Math.cos(currentTime * 0.002) * 4;
+      } else if (!Number.isNaN(globalMouse.x)) {
         const rect = container.getBoundingClientRect();
         const screenCenterX = rect.left + width * 0.5;
         const screenCenterY = rect.top + height * 0.5;
         const screenDx = globalMouse.x - screenCenterX;
         const screenDy = globalMouse.y - screenCenterY;
-        const maxRange = Math.max(window.innerWidth, window.innerHeight) * 0.45;
-        targetEyeX = clamp(screenDx / maxRange, -1, 1) * (baseR * 0.16);
-        targetEyeY = clamp(screenDy / maxRange, -1, 1) * (baseR * 0.12);
+
+        // Rango de seguimiento con mucha más fuerza (34% en X, 26% en Y)
+        const maxDeflectX = baseR * 0.34;
+        const maxDeflectY = baseR * 0.26;
+
+        // Curva de respuesta ultra-reactiva: responde con decisión a movimientos cercanos y lejanos
+        const normX = clamp(screenDx / 300, -1, 1);
+        const normY = clamp(screenDy / 220, -1, 1);
+        const signX = Math.sign(normX);
+        const signY = Math.sign(normY);
+        targetEyeX = signX * Math.pow(Math.abs(normX), 0.68) * maxDeflectX;
+        targetEyeY = signY * Math.pow(Math.abs(normY), 0.68) * maxDeflectY;
       }
 
-      smoothEyeX += (targetEyeX - smoothEyeX) * (1.0 - Math.pow(0.04, rawDt));
-      smoothEyeY += (targetEyeY - smoothEyeY) * (1.0 - Math.pow(0.04, rawDt));
+      // Persecución inercial viva y ágil (factor lerp veloz 0.003)
+      smoothEyeX += (targetEyeX - smoothEyeX) * (1.0 - Math.pow(0.003, rawDt));
+      smoothEyeY += (targetEyeY - smoothEyeY) * (1.0 - Math.pow(0.003, rawDt));
 
       // Proporciones canónicas idénticas a las cápsulas de Blobatar
       const eyeSpread = baseR * 0.21;
@@ -573,13 +748,38 @@ export function AsciiBlobOrb({
           Math.cos(angle * 3.0 - currentTime * 0.0018 * morphSpeed) * morphAmp2 +
           Math.sin(angle * 5.0 + currentTime * 0.0022 * morphSpeed) * morphAmp3;
 
-        const dynamicR = particles.baseRadius[i] * (1.0 + harm);
+        // Modulación acústica de voz únicamente en nodos exteriores (sin inflar ni desinflar el blob)
+        let voiceRipple = 0;
+        if (knobs.mode === "listening" || knobs.mode === "voice") {
+          if (particles.baseRadius[i] > baseR * 0.60) {
+            voiceRipple = Math.sin(angle * 10.0 - currentTime * 0.007) * 0.022;
+          }
+        } else if (knobs.mode === "speaking") {
+          if (particles.baseRadius[i] > baseR * 0.55) {
+            const speechPulse = Math.sin(currentTime * 0.015) > 0.1 ? 0.018 : -0.008;
+            voiceRipple = Math.sin(angle * 8.0 + currentTime * 0.009) * 0.02 + speechPulse;
+          }
+        }
+
+        // En modo pensar: inyectar pulsos cognitivos de calor a los nodos
+        if (knobs.mode === "thinking") {
+          const thinkPulse = Math.sin(currentTime * 0.006 + particles.phase[i]) * 0.5 + 0.5;
+          if (thinkPulse > 0.72) {
+            particles.heat[i] = Math.max(particles.heat[i], (thinkPulse - 0.72) * 2.8);
+          }
+        }
+
+        const dynamicR = particles.baseRadius[i] * (1.0 + harm + voiceRipple);
 
         let targetHx = cx + Math.cos(angle) * dynamicR * squishX;
         let targetHy = cy + Math.sin(angle) * dynamicR * squishY;
 
-        particles.hx[i] = targetHx;
-        particles.hy[i] = targetHy;
+        if (!isGenesisDone && gType === "graph" && genesisStage < 4 && i < 6) {
+          // Mantener hx e hy fijados en la constelación de grafo
+        } else {
+          particles.hx[i] = targetHx;
+          particles.hy[i] = targetHy;
+        }
 
         // Repulsión por puntero
         if (pointer.inside) {
@@ -651,15 +851,108 @@ export function AsciiBlobOrb({
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, width, height);
 
+      /* ── ARISTAS DE GRAFOS DE GÉNESIS (1→2→6→RED EXPONENCIAL) ── */
+      if (!isGenesisDone && gType === "graph") {
+        ctx.save();
+        ctx.lineWidth = 1.3;
+        ctx.strokeStyle = paletteDef.primary;
+
+        if (genesisStage === 1) {
+          // Fase 1: Radar ping concéntrico alrededor del nodo raíz
+          const pingP = genesisElapsed / 0.70;
+          const pingR = 12 + pingP * (baseR * 0.35);
+          ctx.globalAlpha = (1 - pingP) * 0.85;
+          ctx.beginPath();
+          ctx.arc(cx, cy, pingR, 0, Math.PI * 2);
+          ctx.stroke();
+        } else if (genesisStage === 2) {
+          // Fase 2: 2 Nodos conectados con arista luminosa y paquete de datos
+          ctx.globalAlpha = 0.85;
+          ctx.beginPath();
+          ctx.moveTo(particles.x[0], particles.y[0]);
+          ctx.lineTo(particles.x[1], particles.y[1]);
+          ctx.stroke();
+
+          const packetT = (currentTime * 0.0035) % 1.0;
+          const packetX = particles.x[0] + (particles.x[1] - particles.x[0]) * packetT;
+          const packetY = particles.y[0] + (particles.y[1] - particles.y[0]) * packetT;
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.arc(packetX, packetY, 3.2, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (genesisStage === 3) {
+          // Fase 3: 6 Nodos en constelación hexagonal con aristas y radios
+          ctx.globalAlpha = 0.70;
+          ctx.beginPath();
+          for (let k = 0; k < 6; k++) {
+            const nextK = (k + 1) % 6;
+            ctx.moveTo(particles.x[k], particles.y[k]);
+            ctx.lineTo(particles.x[nextK], particles.y[nextK]);
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(particles.x[k], particles.y[k]);
+          }
+          ctx.stroke();
+        } else if (genesisStage === 4 || genesisStage === 5) {
+          // Fase 4 & 5: Red de grafo neuronal entre nodos vecinos
+          const edgeAlpha = genesisStage === 5
+            ? Math.max(0, (1 - (genesisElapsed - 3.40) / 0.70)) * 0.45
+            : 0.45;
+          if (edgeAlpha > 0.02) {
+            ctx.globalAlpha = edgeAlpha;
+            ctx.beginPath();
+            const step = Math.max(1, Math.floor(visCount / 100));
+            for (let i = 0; i < visCount; i += step) {
+              const maxJ = Math.min(visCount, i + 14);
+              for (let j = i + 1; j < maxJ; j++) {
+                const edx = particles.x[i] - particles.x[j];
+                const edy = particles.y[i] - particles.y[j];
+                if (edx * edx + edy * edy < 1764) { // distancia < 42px
+                  ctx.moveTo(particles.x[i], particles.y[i]);
+                  ctx.lineTo(particles.x[j], particles.y[j]);
+                }
+              }
+            }
+            ctx.stroke();
+          }
+        }
+        ctx.restore();
+      }
+
+      /* ── MODO PENSAR: SINAPSIS NEURONALES INTERNAS ACTIVAS ── */
+      if (knobs.mode === "thinking" && isGenesisDone) {
+        ctx.save();
+        ctx.lineWidth = 1.1;
+        for (let s = 0; s < synapsePairs.length; s++) {
+          const [idxA, idxB] = synapsePairs[s];
+          if (idxA < visCount && idxB < visCount) {
+            const ax = particles.x[idxA];
+            const ay = particles.y[idxA];
+            const bx = particles.x[idxB];
+            const by = particles.y[idxB];
+            const pulse = Math.sin(currentTime * 0.005 + s * 1.4) * 0.5 + 0.5;
+            if (pulse > 0.35) {
+              ctx.strokeStyle = paletteDef.primary;
+              ctx.globalAlpha = (pulse - 0.35) * 0.45;
+              ctx.beginPath();
+              ctx.moveTo(ax, ay);
+              ctx.lineTo(bx, by);
+              ctx.stroke();
+            }
+          }
+        }
+        ctx.restore();
+      }
+
       // Tipografía más grande y nítida para los glifos ASCII (15px)
       ctx.font = `600 15px ${MONO_FONT}`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
-      const blinkComp = Math.max(0.10, blinkStateRef.current.progress);
+      const normalBlinkComp = Math.max(0.08, blinkStateRef.current.progress);
+      const blinkComp = !isGenesisDone ? Math.max(0.06, eyeOpenFactor) : normalBlinkComp;
 
       /* ── Dibujo de Partículas: Halftone Frío o Glifo Caliente ── */
-      for (let i = 0; i < particleCount; i++) {
+      for (let i = 0; i < visCount; i++) {
         let renderX = particles.x[i];
         let renderY = particles.y[i];
 
@@ -747,7 +1040,13 @@ export function AsciiBlobOrb({
           ctx.fillStyle = paletteDef.secondary;
         }
 
-        ctx.fillText(ramp[glyphIdx], renderX, renderY);
+        if (knobs.mode === "thinking") {
+          const THINK_CHARS = ["0", "1", "?", "!", "#", "&", "*", "/", "λ", "π", "§", "%"];
+          const tIdx = Math.floor(Math.abs(hash14Hz(i, dealCounter)) * THINK_CHARS.length) % THINK_CHARS.length;
+          ctx.fillText(THINK_CHARS[tIdx], renderX, renderY);
+        } else {
+          ctx.fillText(ramp[glyphIdx], renderX, renderY);
+        }
       }
 
       /* ── 3. OJOS BLOBATAR PUROS: 100% HUECOS VACÍOS NEGATIVOS (SIN NADA) ── */
@@ -758,11 +1057,7 @@ export function AsciiBlobOrb({
       animId = requestAnimationFrame(render);
     };
 
-    if (!isMotionReduced) {
-      animId = requestAnimationFrame(render);
-    } else {
-      render(performance.now());
-    }
+    animId = requestAnimationFrame(render);
 
     return () => {
       cancelAnimationFrame(animId);

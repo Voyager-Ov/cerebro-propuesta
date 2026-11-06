@@ -32,6 +32,7 @@ flowchart TD
         node_AR09["<b>[AR09]</b><br/>Codebase Memory MCP (Grafo CBM)"]:::arquitectura
         node_AR10["<b>[AR10]</b><br/>Three.js Suite (13 Skills)"]:::arquitectura
         node_AR11["<b>[AR11]</b><br/>VGPU.sh WebGPU (Vercel Labs)"]:::arquitectura
+        node_AR13["<b>[AR13]</b><br/>Crypto & Stablecoins ASCII 3D"]:::arquitectura
     end
 
     subgraph SG_ideas_equipo ["Las 2 Ideas en Decisión"]
@@ -49,6 +50,9 @@ flowchart TD
     node_AR01 --> node_AR02
     node_AR01 --> node_AR10
     node_AR10 --> node_AR11
+    node_AR10 --> node_AR13
+    node_AR13 --> node_TW01
+    node_AR13 --> node_TW03
     node_AR08 --> node_AR10
     node_AR09 -->|acelera desarrollo de| node_ID09
     node_AR09 -->|acelera desarrollo de| node_ID10
