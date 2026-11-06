@@ -150,19 +150,21 @@ export function AsciiBlobOrb({
     };
   }, [mode, palette, glyphs, reach, force, trail, pull, showEyes, particleDensity]);
 
-  // Parpadeo de ojos Blobatar
+  // Parpadeo de ojos Blobatar orgánico
   const blinkStateRef = useRef({ progress: 1.0, isBlinking: false });
 
   const triggerBlink = useCallback(() => {
     if (blinkStateRef.current.isBlinking) return;
     blinkStateRef.current.isBlinking = true;
     const start = performance.now();
-    const duration = 180;
+    const duration = 160;
 
     const stepBlink = (now: number) => {
       const elapsed = now - start;
       const p = Math.min(1.0, elapsed / duration);
-      blinkStateRef.current.progress = Math.sin(p * Math.PI) > 0.4 ? 0.05 : 1.0;
+      // Suave curva de parpadeo biológico (hasta 0.08 en el punto de máximo cierre)
+      const closeAmount = Math.sin(p * Math.PI);
+      blinkStateRef.current.progress = 1.0 - 0.92 * Math.pow(closeAmount, 1.8);
       if (p < 1.0) {
         requestAnimationFrame(stepBlink);
       } else {
@@ -401,6 +403,13 @@ export function AsciiBlobOrb({
       if (onBlobClick) onBlobClick();
     };
 
+    const globalMouse = { x: NaN, y: NaN };
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      globalMouse.x = e.clientX;
+      globalMouse.y = e.clientY;
+    };
+    window.addEventListener("mousemove", handleGlobalMouseMove, { passive: true });
+
     container.addEventListener("mousemove", handlePointerMove);
     container.addEventListener("mouseenter", handlePointerEnter);
     container.addEventListener("mouseleave", handlePointerLeave);
@@ -498,25 +507,33 @@ export function AsciiBlobOrb({
 
       const baseR = Math.min(width, height) * 0.35;
 
-      /* ── 2. OJOS BLOBATAR EXPRESIVOS (LOOK-AT INERCIAL) ── */
-      // Cuando el mouse no está en el orbe, los ojos miran pacíficamente al frente (offset = 0)
-      const targetEyeX = pointer.inside
-        ? clamp((pointer.x - cx) / (width * 0.45), -1, 1) * 22
-        : 0;
-      const targetEyeY = pointer.inside
-        ? clamp((pointer.y - cy) / (height * 0.45), -1, 1) * 16
-        : 0;
+      /* ── 2. OJOS BLOBATAR EXPRESIVOS (LOOK-AT INERCIAL GLOBAL) ── */
+      // Sigue el puntero en toda la ventana de forma análoga a blobatar/gaze
+      let targetEyeX = 0;
+      let targetEyeY = 0;
+
+      if (!Number.isNaN(globalMouse.x)) {
+        const rect = container.getBoundingClientRect();
+        const screenCenterX = rect.left + width * 0.5;
+        const screenCenterY = rect.top + height * 0.5;
+        const screenDx = globalMouse.x - screenCenterX;
+        const screenDy = globalMouse.y - screenCenterY;
+        const maxRange = Math.max(window.innerWidth, window.innerHeight) * 0.45;
+        targetEyeX = clamp(screenDx / maxRange, -1, 1) * (baseR * 0.16);
+        targetEyeY = clamp(screenDy / maxRange, -1, 1) * (baseR * 0.12);
+      }
 
       smoothEyeX += (targetEyeX - smoothEyeX) * (1.0 - Math.pow(0.04, rawDt));
       smoothEyeY += (targetEyeY - smoothEyeY) * (1.0 - Math.pow(0.04, rawDt));
 
-      const eyeSpread = 40;
-      const eyeElevation = 22;
+      // Proporciones canónicas idénticas a las cápsulas de Blobatar
+      const eyeSpread = baseR * 0.21;
+      const eyeElevation = baseR * 0.08;
       const eyeLX = cx - eyeSpread + smoothEyeX;
       const eyeRX = cx + eyeSpread + smoothEyeX;
       const eyeY = cy - eyeElevation + smoothEyeY;
-      const eyeRadiusX = 22;
-      const eyeRadiusY = 27;
+      const eyeRadiusX = baseR * 0.095;
+      const eyeRadiusY = baseR * 0.22;
 
       // Ondas de choque
       for (let rIdx = shockwaveRings.length - 1; rIdx >= 0; rIdx--) {
@@ -639,22 +656,14 @@ export function AsciiBlobOrb({
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
-      const blinkComp = Math.max(0.12, blinkStateRef.current.progress);
+      const blinkComp = Math.max(0.10, blinkStateRef.current.progress);
 
       /* ── Dibujo de Partículas: Halftone Frío o Glifo Caliente ── */
       for (let i = 0; i < particleCount; i++) {
-        // Culling estricto dentro de la cuenca ocular para dejar el hueco negro puro
-        if (knobs.showEyes) {
-          const dL = Math.hypot((particles.x[i] - eyeLX) / eyeRadiusX, (particles.y[i] - eyeY) / (eyeRadiusY * blinkComp));
-          const dR = Math.hypot((particles.x[i] - eyeRX) / eyeRadiusX, (particles.y[i] - eyeY) / (eyeRadiusY * blinkComp));
-          if (dL < 1.05 || dR < 1.05) continue;
-        }
-
         let renderX = particles.x[i];
         let renderY = particles.y[i];
-        let h = particles.heat[i];
 
-        // Atracción magnética hacia el cursor
+        // 1. Atracción magnética hacia el cursor
         if (leanStrength > 0.002 && pointer.inside) {
           const mdx = pointer.x - renderX;
           const mdy = pointer.y - renderY;
@@ -667,6 +676,44 @@ export function AsciiBlobOrb({
             renderY += (mdy / md) * pullOffset;
           }
         }
+
+        // 2. OJOS BLOBATAR: DOS HUECOS VACÍOS PUROS (100% SIN NADA)
+        // Se ejecuta DESPUÉS de cualquier atracción magnética para garantizar
+        // que la cavidad permanezca completamente pura y limpia.
+        if (knobs.showEyes) {
+          const dL = Math.hypot(
+            (renderX - eyeLX) / eyeRadiusX,
+            (renderY - eyeY) / (eyeRadiusY * blinkComp)
+          );
+          const dR = Math.hypot(
+            (renderX - eyeRX) / eyeRadiusX,
+            (renderY - eyeY) / (eyeRadiusY * blinkComp)
+          );
+
+          // Si el punto cae dentro de la cápsula (con margen para el radio del punto): purga total
+          if (dL < 1.15 || dR < 1.15) continue;
+
+          // Si está en el borde perimetral inmediato, se empuja suavemente creando el contorno orgánico
+          if (dL < 1.35) {
+            const push = (1.35 - dL) * 0.6;
+            const ang = Math.atan2(
+              (renderY - eyeY) / (eyeRadiusY * blinkComp),
+              (renderX - eyeLX) / eyeRadiusX
+            );
+            renderX += Math.cos(ang) * eyeRadiusX * push;
+            renderY += Math.sin(ang) * (eyeRadiusY * blinkComp) * push;
+          } else if (dR < 1.35) {
+            const push = (1.35 - dR) * 0.6;
+            const ang = Math.atan2(
+              (renderY - eyeY) / (eyeRadiusY * blinkComp),
+              (renderX - eyeRX) / eyeRadiusX
+            );
+            renderX += Math.cos(ang) * eyeRadiusX * push;
+            renderY += Math.sin(ang) * (eyeRadiusY * blinkComp) * push;
+          }
+        }
+
+        let h = particles.heat[i];
 
         const sp = Math.hypot(particles.vx[i], particles.vy[i]);
 
@@ -703,61 +750,10 @@ export function AsciiBlobOrb({
         ctx.fillText(ramp[glyphIdx], renderX, renderY);
       }
 
-      /* ── 3. RENDERIZADO DE OJOS BLOBATAR EXPRESIVOS ── */
-      if (knobs.showEyes) {
-        if (blinkStateRef.current.progress < 0.25) {
-          // Rendija luminosa al parpadear
-          ctx.strokeStyle = paletteDef.eyeAccent;
-          ctx.lineWidth = 2.8;
-          ctx.beginPath();
-          ctx.moveTo(eyeLX - eyeRadiusX * 0.85, eyeY);
-          ctx.lineTo(eyeLX + eyeRadiusX * 0.85, eyeY);
-          ctx.moveTo(eyeRX - eyeRadiusX * 0.85, eyeY);
-          ctx.lineTo(eyeRX + eyeRadiusX * 0.85, eyeY);
-          ctx.stroke();
-        } else {
-          // Cuenca Ocular Hueca Negra con Borde de Alta Definición
-          ctx.fillStyle = "#000000";
-          ctx.strokeStyle = paletteDef.eyeAccent;
-          ctx.lineWidth = 2.0;
-
-          // Cavidad Ojo Izquierdo
-          ctx.beginPath();
-          ctx.ellipse(eyeLX, eyeY, eyeRadiusX, eyeRadiusY * blinkComp, 0, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.stroke();
-
-          // Cavidad Ojo Derecho
-          ctx.beginPath();
-          ctx.ellipse(eyeRX, eyeY, eyeRadiusX, eyeRadiusY * blinkComp, 0, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.stroke();
-
-          // Pupila Expresiva Blobatar con Look-At Reactivo
-          const pupilOffsetX = smoothEyeX * 0.38;
-          const pupilOffsetY = smoothEyeY * 0.38;
-          const pupilR = 5.8 * blinkComp;
-
-          ctx.fillStyle = paletteDef.primary;
-          ctx.beginPath();
-          ctx.arc(eyeLX + pupilOffsetX, eyeY + pupilOffsetY, pupilR, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.beginPath();
-          ctx.arc(eyeRX + pupilOffsetX, eyeY + pupilOffsetY, pupilR, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Micro-reflejo especular blanco
-          ctx.fillStyle = "#FFFFFF";
-          ctx.beginPath();
-          ctx.arc(eyeLX + pupilOffsetX - 1.8, eyeY + pupilOffsetY - 1.8, pupilR * 0.36, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.beginPath();
-          ctx.arc(eyeRX + pupilOffsetX - 1.8, eyeY + pupilOffsetY - 1.8, pupilR * 0.36, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
+      /* ── 3. OJOS BLOBATAR PUROS: 100% HUECOS VACÍOS NEGATIVOS (SIN NADA) ── */
+      // No se dibuja NADA adentro de los ojos ni al estar abiertos ni cerrados.
+      // Las partículas dentro de la elipse se omiten, y al parpadear la elipse
+      // se aplasta verticalmente a una rendija negra natural, idéntico a Blobatar.
 
       animId = requestAnimationFrame(render);
     };
@@ -770,6 +766,7 @@ export function AsciiBlobOrb({
 
     return () => {
       cancelAnimationFrame(animId);
+      window.removeEventListener("mousemove", handleGlobalMouseMove);
       container.removeEventListener("mousemove", handlePointerMove);
       container.removeEventListener("mouseenter", handlePointerEnter);
       container.removeEventListener("mouseleave", handlePointerLeave);
