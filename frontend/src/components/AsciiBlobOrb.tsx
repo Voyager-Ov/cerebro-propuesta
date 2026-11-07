@@ -1,30 +1,35 @@
 "use client";
 
 import React, { useEffect, useRef, useCallback } from "react";
+import { _layout } from "blobatar";
 
 /* ══ AsciiBlobOrb ═════════════════════════════════════════════════════════════
    Orbe Blobtar Biomorphic ASCII interactivo.
    
-   Características clave refinadas:
-   1. Reposo Zen (Status Quo Calm):
+   Características clave:
+   1. Paridad de Siluetas con Blobatar Oficial (10 Formas Canónicas):
+      - Soporta idénticamente las 10 formas de `@blobatar/react`:
+        "capsule", "round", "organic", "boxy", "cloud", "sun", "droplet",
+        "hexagon", "triangle", "nub".
+      - Transición y metamorfosis elástica suave entre semillas y siluetas.
+   2. Ojos Blobatar 100% "Sin Nada Adentro" (Huecos Negativos Puros):
+      - Posicionados, orientados y escalados con las coordenadas exactas de _layout(seed).eyes.
+      - Parpadeo reactivo y seguimiento inercial de alta potencia.
+   3. Reposo Zen (Status Quo Calm):
       - Cero auto-giro y cero ruido autónomo en reposo ("no se mueve porque sí").
-      - Geometría circular armónica en calma.
-   2. Transición Suave y Animada (Smooth Excitation):
+   4. Transición Suave y Animada (Smooth Excitation):
       - Al entrar el cursor en la zona del orbe, la turbulencia y el movimiento
-        general despiertan con una rampa asintótica suave y gradual (sin saltos bruscos).
-      - Al retirar el cursor, la masa retorna fluidamente al reposo absoluto.
-   3. Puntos y Caracteres Más Grandes:
+        despiertan con una rampa suave y gradual.
+   5. Nodos y Caracteres Nítidos:
       - Nodos semitono en reposo con radio sustancial (~3.6 a 5.8px).
-      - Tipografía ASCII a 15px monospace en negrita para alta legibilidad.
-   4. Ojos Blobatar Expresivos:
-      - Cuencas oculares con contorno nítido, vacío interno y pupilas con
-        seguimiento inercial de alta fidelidad hacia el cursor.
-      - Parpadeo reactivo y autónomo en hendidura (*blink slit*).
-   5. Física de Resortes Bencho (Particles.tsx) + Estela Térmica (ASCIIWake.tsx):
+      - Tipografía ASCII a 15px monospace en negrita.
+   6. Física de Resortes Bencho (Particles.tsx) + Estela Térmica (ASCIIWake.tsx):
       - Resortes Euler frame-independent con amortiguación Math.pow(0.84, dt).
-      - Deformación elíptica por velocidad que preserva el volumen óptico.
+      - Deformación elíptica por velocidad.
       - Rampa de caracteres ASCII con centelleo terminal a 14Hz.
       - Onda de choque radial expansiva (Shockwave) al hacer clic.
+   7. Génesis Interactiva con Grafos:
+      - 1 nodo raíz -> 2 bifurcados -> 6 en constelación -> red exponencial -> despertar.
    ══════════════════════════════════════════════════════════════════════════════ */
 
 export type BlobOrbMode = "idle" | "listening" | "voice" | "thinking" | "speaking";
@@ -96,7 +101,108 @@ const SHIMMER_INTERVAL_S = 0.07;
 
 export type GenesisMode = "graph" | "fibonacci" | "quantum";
 
+/* ══ Geometría Exacta de Siluetas Blobatar (10 Formas Canónicas) ══════════════
+   Calcula la distancia radial R(θ) desde el centro del cuerpo hacia el borde
+   perimetral para cualquiera de las 10 formas de la librería Blobatar:
+   - "capsule": estadio horizontal con caja central plana y dos casquetes curvos.
+   - "round": superelipse estándar (|x/rx|^n + |y/ry|^n = 1 con n ~ 2.0..2.5).
+   - "boxy": superelipse cuadrada con n ~ 3.4..6.0 y leve inclinación rot.
+   - "organic": spline polar armónico interpolando radii (6..8 vértices Catmull-Rom).
+   - "cloud": cuerpo base con 4..6 lóbulos superiores hinchados.
+   - "sun": cuerpo base con 6..9 rayos perimetrales en círculo completo.
+   - "droplet": base elíptica con ápice cónico alargado en la parte superior.
+   - "hexagon": polígono de 6 lados con esquinas suavizadas.
+   - "triangle": polígono de 3 lados apoyado en su base.
+   - "nub": superelipse con 1 o 2 protuberancias lobuladas orgánicas.
+   ══════════════════════════════════════════════════════════════════════════════ */
+export function getShapeBoundaryR(theta: number, layout: ReturnType<typeof _layout>): number {
+  const { shape, body, petals } = layout;
+  const { rx, ry, cx, cy, rot = 0, n = 2.4, radii, sides = 0, round = 0.3 } = body;
+
+  let baseR = ry;
+  const t = theta - ((rot || 0) * Math.PI) / 180;
+  const cosT = Math.cos(t);
+  const sinT = Math.sin(t);
+  const absCos = Math.abs(cosT);
+  const absSin = Math.abs(sinT);
+
+  if (shape === "capsule") {
+    const dx = Math.max(0, rx - ry);
+    if (dx === 0) {
+      baseR = rx;
+    } else {
+      const tanCrit = ry / dx;
+      const tan = absSin / (absCos + 1e-9);
+      if (tan >= tanCrit) {
+        baseR = ry / (absSin + 1e-9);
+      } else {
+        baseR = dx * absCos + Math.sqrt(Math.max(0, ry * ry - dx * dx * sinT * sinT));
+      }
+    }
+  } else if (shape === "organic" && radii && radii.length) {
+    const pts = radii.length;
+    let normT = t % (Math.PI * 2);
+    if (normT < 0) normT += Math.PI * 2;
+    const fIdx = (normT / (Math.PI * 2)) * pts;
+    const i0 = Math.floor(fIdx) % pts;
+    const i1 = (i0 + 1) % pts;
+    const frac = fIdx - Math.floor(fIdx);
+    const easeFrac = (1 - Math.cos(frac * Math.PI)) * 0.5;
+    const m = radii[i0] * (1 - easeFrac) + radii[i1] * easeFrac;
+    const invR = Math.hypot(cosT / rx, sinT / ry);
+    baseR = (1 / (invR + 1e-9)) * m;
+  } else if ((shape === "hexagon" || shape === "triangle") && sides >= 3) {
+    const tPoly = t - Math.PI / 2;
+    const sector = (Math.PI * 2) / sides;
+    let normA = tPoly % sector;
+    if (normA < 0) normA += sector;
+    const alpha = normA - sector / 2;
+    const rInscribed = rx * Math.cos(sector / 2);
+    const rPoly = rInscribed / (Math.cos(alpha) + 1e-9);
+    const k = Math.min(1, Math.max(0, round || 0.3));
+    baseR = rPoly * (1 - k * 0.18) + rx * (k * 0.18);
+  } else if (shape === "droplet") {
+    const invR = Math.hypot(cosT / rx, sinT / ry);
+    const rEllipse = 1 / (invR + 1e-9);
+    if (sinT < -0.1) {
+      const tip = 1.5;
+      const apexDist = ry * tip;
+      const tApex = Math.abs(cosT);
+      const taperR = apexDist / (Math.abs(sinT) + tApex * 0.8 + 1e-9);
+      baseR = Math.max(rEllipse, Math.min(apexDist, taperR));
+    } else {
+      baseR = rEllipse;
+    }
+  } else {
+    // Superelipse (round, boxy, base de cloud/sun/nub)
+    const pN = n || 2.4;
+    const termX = Math.pow(absCos / rx, pN);
+    const termY = Math.pow(absSin / ry, pN);
+    baseR = 1 / Math.pow(termX + termY + 1e-9, 1 / pN);
+  }
+
+  // Evaluar pétalos/lóbulos exteriores adicionales (cloud, sun, nub)
+  if (petals && petals.length) {
+    for (let i = 0; i < petals.length; i++) {
+      const p = petals[i];
+      const u = p.cx - cx;
+      const v = p.cy - cy;
+      const dPar = u * Math.cos(theta) + v * Math.sin(theta);
+      const dPerp = Math.abs(-u * Math.sin(theta) + v * Math.cos(theta));
+      if (dPerp < p.r && dPar > 0) {
+        const rLobe = dPar + Math.sqrt(p.r * p.r - dPerp * dPerp);
+        if (rLobe > baseR) {
+          baseR = rLobe;
+        }
+      }
+    }
+  }
+
+  return baseR;
+}
+
 export interface AsciiBlobOrbProps {
+  seed?: string;
   mode?: BlobOrbMode;
   palette?: BlobPaletteName;
   glyphs?: GlyphRampName;
@@ -114,6 +220,7 @@ export interface AsciiBlobOrbProps {
 }
 
 export function AsciiBlobOrb({
+  seed = "HackaTwin-Sphere-01",
   mode = "idle",
   palette = "monochrome",
   glyphs = "Classic",
@@ -133,6 +240,7 @@ export function AsciiBlobOrb({
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const knobsRef = useRef({
+    seed,
     mode,
     palette,
     glyphs,
@@ -148,6 +256,7 @@ export function AsciiBlobOrb({
 
   useEffect(() => {
     knobsRef.current = {
+      seed,
       mode,
       palette,
       glyphs,
@@ -161,6 +270,7 @@ export function AsciiBlobOrb({
       genesisKey,
     };
   }, [
+    seed,
     mode,
     palette,
     glyphs,
@@ -267,6 +377,7 @@ export function AsciiBlobOrb({
       const N = particleCount;
       const baseR = Math.min(width, height) * 0.35;
       const goldenAngle = Math.PI * (3 - Math.sqrt(5)); // ~137.5 grados
+      const S = baseR / 35; // Factor de escala para mapear espacio 100x100 de Blobatar al canvas
 
       const bRadius = new Float32Array(N);
       const bAngle = new Float32Array(N);
@@ -283,10 +394,13 @@ export function AsciiBlobOrb({
       const cx = width * 0.5;
       const cy = height * 0.5;
 
+      const currentLayout = _layout(knobsRef.current.seed);
+
       for (let i = 0; i < N; i++) {
         const rNorm = Math.sqrt((i + 0.5) / N);
         const theta = i * goldenAngle;
-        const r = rNorm * baseR;
+        const boundaryR = getShapeBoundaryR(theta, currentLayout);
+        const r = boundaryR * rNorm * S;
 
         bRadius[i] = r;
         bAngle[i] = theta;
@@ -337,9 +451,9 @@ export function AsciiBlobOrb({
     };
     buildSynapses();
 
-    // Control de tiempo para la Génesis del Orbe
+    // Control de tiempo para la Génesis del Orbe (inicia consolidado por defecto para visualización instantánea; se dispara al pulsar Replay o cambiar modo)
     let genesisElapsed = 0;
-    let isGenesisDone = false;
+    let isGenesisDone = knobsRef.current.genesisKey === 0;
     let lastGenesisKey = knobsRef.current.genesisKey;
 
     /* ── Estado Dinámico del Puntero y Ondas ── */
@@ -669,9 +783,13 @@ export function AsciiBlobOrb({
         }
       }
 
-      /* ── 2. SEGUIMIENTO OCULAR DE ALTA FUERZA Y PRESENCIA ── */
+      /* ── 2. SEGUIMIENTO OCULAR Y PARIDAD DE SILUETA CON BLOBATAR ── */
       let targetEyeX = 0;
       let targetEyeY = 0;
+
+      // Resuelve el layout del Blobatar para la semilla actual
+      const activeLayout = _layout(knobs.seed || "HackaTwin-Sphere-01");
+      const S = (Math.min(width, height) * 0.35) / 35; // Factor de escala canónico
 
       if (knobs.mode === "thinking") {
         // En modo pensar: mirada reflexiva cognoscente hacia arriba-izquierda con micro-deriva
@@ -701,14 +819,26 @@ export function AsciiBlobOrb({
       smoothEyeX += (targetEyeX - smoothEyeX) * (1.0 - Math.pow(0.003, rawDt));
       smoothEyeY += (targetEyeY - smoothEyeY) * (1.0 - Math.pow(0.003, rawDt));
 
-      // Proporciones canónicas idénticas a las cápsulas de Blobatar
-      const eyeSpread = baseR * 0.21;
-      const eyeElevation = baseR * 0.08;
-      const eyeLX = cx - eyeSpread + smoothEyeX;
-      const eyeRX = cx + eyeSpread + smoothEyeX;
-      const eyeY = cy - eyeElevation + smoothEyeY;
-      const eyeRadiusX = baseR * 0.095;
-      const eyeRadiusY = baseR * 0.22;
+      // Mapeo exacto de las coordenadas de ojos de Blobatar (layout.eyes) al canvas
+      const eye0 = activeLayout.eyes?.[0] || { cx: 40, cy: 48, rx: 3.2, ry: 6.8, rot: 0 };
+      const eye1 = activeLayout.eyes?.[1] || { cx: 60, cy: 48, rx: 3.2, ry: 6.8, rot: 0 };
+
+      const baseEyeLX = cx + (eye0.cx - activeLayout.body.cx) * S;
+      const baseEyeLY = cy + (eye0.cy - activeLayout.body.cy) * S;
+      const eyeLRX = eye0.rx * S;
+      const eyeLRY = eye0.ry * S;
+      const eyeLRot = ((eye0.rot || 0) * Math.PI) / 180;
+
+      const baseEyeRX = cx + (eye1.cx - activeLayout.body.cx) * S;
+      const baseEyeRY = cy + (eye1.cy - activeLayout.body.cy) * S;
+      const eyeRRX = eye1.rx * S;
+      const eyeRRY = eye1.ry * S;
+      const eyeRRot = ((eye1.rot || 0) * Math.PI) / 180;
+
+      const eyeLX = baseEyeLX + smoothEyeX;
+      const eyeLY = baseEyeLY + smoothEyeY;
+      const eyeRX = baseEyeRX + smoothEyeX;
+      const eyeRY = baseEyeRY + smoothEyeY;
 
       // Ondas de choque
       for (let rIdx = shockwaveRings.length - 1; rIdx >= 0; rIdx--) {
@@ -741,6 +871,7 @@ export function AsciiBlobOrb({
       for (let i = 0; i < particleCount; i++) {
         const angle = particles.baseAngle[i] + globalAngle;
         const phase = particles.phase[i];
+        const rNorm = Math.sqrt((i + 0.5) / particleCount);
 
         // Deformación armónica polar (solo activa ante interacción)
         const harm =
@@ -751,11 +882,11 @@ export function AsciiBlobOrb({
         // Modulación acústica de voz únicamente en nodos exteriores (sin inflar ni desinflar el blob)
         let voiceRipple = 0;
         if (knobs.mode === "listening" || knobs.mode === "voice") {
-          if (particles.baseRadius[i] > baseR * 0.60) {
+          if (rNorm > 0.60) {
             voiceRipple = Math.sin(angle * 10.0 - currentTime * 0.007) * 0.022;
           }
         } else if (knobs.mode === "speaking") {
-          if (particles.baseRadius[i] > baseR * 0.55) {
+          if (rNorm > 0.55) {
             const speechPulse = Math.sin(currentTime * 0.015) > 0.1 ? 0.018 : -0.008;
             voiceRipple = Math.sin(angle * 8.0 + currentTime * 0.009) * 0.02 + speechPulse;
           }
@@ -769,7 +900,9 @@ export function AsciiBlobOrb({
           }
         }
 
-        const dynamicR = particles.baseRadius[i] * (1.0 + harm + voiceRipple);
+        // Límite perimetral exacto de la silueta para este ángulo según la forma
+        const boundaryR = getShapeBoundaryR(angle, activeLayout);
+        const dynamicR = boundaryR * rNorm * S * (1.0 + harm + voiceRipple);
 
         let targetHx = cx + Math.cos(angle) * dynamicR * squishX;
         let targetHy = cy + Math.sin(angle) * dynamicR * squishY;
@@ -971,17 +1104,25 @@ export function AsciiBlobOrb({
         }
 
         // 2. OJOS BLOBATAR: DOS HUECOS VACÍOS PUROS (100% SIN NADA)
+        // Posicionados, rotados y escalados según el layout canónico de Blobatar.
         // Se ejecuta DESPUÉS de cualquier atracción magnética para garantizar
         // que la cavidad permanezca completamente pura y limpia.
         if (knobs.showEyes) {
-          const dL = Math.hypot(
-            (renderX - eyeLX) / eyeRadiusX,
-            (renderY - eyeY) / (eyeRadiusY * blinkComp)
-          );
-          const dR = Math.hypot(
-            (renderX - eyeRX) / eyeRadiusX,
-            (renderY - eyeY) / (eyeRadiusY * blinkComp)
-          );
+          const dxL = renderX - eyeLX;
+          const dyL = renderY - eyeLY;
+          const cosL = Math.cos(-eyeLRot);
+          const sinL = Math.sin(-eyeLRot);
+          const uL = (dxL * cosL - dyL * sinL) / eyeLRX;
+          const vL = (dxL * sinL + dyL * cosL) / (eyeLRY * blinkComp);
+          const dL = Math.hypot(uL, vL);
+
+          const dxR = renderX - eyeRX;
+          const dyR = renderY - eyeRY;
+          const cosR = Math.cos(-eyeRRot);
+          const sinR = Math.sin(-eyeRRot);
+          const uR = (dxR * cosR - dyR * sinR) / eyeRRX;
+          const vR = (dxR * sinR + dyR * cosR) / (eyeRRY * blinkComp);
+          const dR = Math.hypot(uR, vR);
 
           // Si el punto cae dentro de la cápsula (con margen para el radio del punto): purga total
           if (dL < 1.15 || dR < 1.15) continue;
@@ -989,20 +1130,14 @@ export function AsciiBlobOrb({
           // Si está en el borde perimetral inmediato, se empuja suavemente creando el contorno orgánico
           if (dL < 1.35) {
             const push = (1.35 - dL) * 0.6;
-            const ang = Math.atan2(
-              (renderY - eyeY) / (eyeRadiusY * blinkComp),
-              (renderX - eyeLX) / eyeRadiusX
-            );
-            renderX += Math.cos(ang) * eyeRadiusX * push;
-            renderY += Math.sin(ang) * (eyeRadiusY * blinkComp) * push;
+            const ang = Math.atan2(vL, uL) + eyeLRot;
+            renderX += Math.cos(ang) * eyeLRX * push;
+            renderY += Math.sin(ang) * (eyeLRY * blinkComp) * push;
           } else if (dR < 1.35) {
             const push = (1.35 - dR) * 0.6;
-            const ang = Math.atan2(
-              (renderY - eyeY) / (eyeRadiusY * blinkComp),
-              (renderX - eyeRX) / eyeRadiusX
-            );
-            renderX += Math.cos(ang) * eyeRadiusX * push;
-            renderY += Math.sin(ang) * (eyeRadiusY * blinkComp) * push;
+            const ang = Math.atan2(vR, uR) + eyeRRot;
+            renderX += Math.cos(ang) * eyeRRX * push;
+            renderY += Math.sin(ang) * (eyeRRY * blinkComp) * push;
           }
         }
 

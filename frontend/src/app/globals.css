@@ -1,11 +1,94 @@
 @import "tailwindcss";
 
-/* ══ Particles ═════════════════════════════════════════════
-   lab/Particles.tsx. The dots are drawn on a canvas in the
-   element's own `color`, so the ink is set here and the theme
-   carries it. */
+/* ═══════════════════════════════════════════════════════════════════════════
+   CRITERIALOCK // DESIGN SYSTEM TOKENS (MONOCHROME ASCII × FINTECH CRAFT)
+   Estética Blanco y Negro Puro (#000000 / #09090b / #27272a / #FFFFFF)
+   con física de resortes de Bencho.dev, Pilar (UI-01) y Costado (UI-02).
+   ═══════════════════════════════════════════════════════════════════════════ */
+:root {
+  /* ── 1. Lienzos y Superficies Sólidas ── */
+  --bg-void: #000000;
+  --surface-carbon: #09090b;
+  --surface-elevated: #0d0d10;
+  --surface-sticky: #101014;
+  --surface-hover: #141418;
+  --surface-selected: #1c1c22;
+  --surface-dock: rgba(9, 9, 11, 0.86);
+
+  /* ── 2. Bordes Hairline de 1px & Grilla Arquitectónica ── */
+  --border-grid: #18181b;
+  --border-hairline: #27272a;
+  --border-focus: #52525b;
+  --border-pure: #ffffff;
+
+  /* ── 3. Tinta Tipográfica y Luminancia ASCII ── */
+  --ink-pure: #ffffff;
+  --ink-primary: #f4f4f5;
+  --ink-secondary: #a1a1aa;
+  --ink-muted: #52525b;
+  --ink-on-white: #000000;
+
+  /* ── 4. Micro-Indicadores Semánticos Quirúrgicos (Dots de 6px) ── */
+  --status-verified: #10b981;
+  --status-pending: #f59e0b;
+  --status-locked: #ffffff;
+
+  /* ── 5. Curvas Físicas de Resorte y Ola (Bencho + Pilar + Costado) ── */
+  --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --ease-wave: cubic-bezier(0.34, 1.25, 0.64, 1);
+
+  /* ── 6. Biseles Especulares Estilo Hardware / iOS ── */
+  --bevel-ios-white: inset 0 1px 0 0 rgba(255, 255, 255, 0.95), 0 8px 24px -4px rgba(255, 255, 255, 0.22);
+  --bevel-ios-dark: inset 0 1px 0 0 rgba(255, 255, 255, 0.09), 0 10px 24px -10px rgba(0, 0, 0, 0.9);
+  --shadow-card: 0 24px 48px -12px rgba(0, 0, 0, 0.95);
+}
+
+html {
+  scroll-behavior: smooth;
+  background-color: var(--bg-void);
+  color: var(--ink-primary);
+}
+
+body {
+  background-color: var(--bg-void);
+  color: var(--ink-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+/* ── Utilidades Numéricas y Tipográficas ── */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Patrón Sutil de Matriz de Puntos (Halftone Field) ── */
+.bg-halftone-grid {
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.08) 1px, transparent 1.25px);
+  background-size: 20px 20px;
+}
+
+.bg-halftone-dense {
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.11) 1px, transparent 1.2px);
+  background-size: 12px 12px;
+}
+
+/* ── Biseles Táctiles iOS ── */
+.ios-bevel-white {
+  box-shadow: var(--bevel-ios-white);
+}
+
+.ios-bevel-dark {
+  box-shadow: var(--bevel-ios-dark);
+}
+
+/* ══ Particles (Bencho.dev) ════════════════════════════════════════════════ */
 .ptc {
-  /* Bencho design tokens scoped locally on the component's own root */
   --ink: currentColor;
   --fill-on: var(--ink);
   position: relative;
@@ -20,9 +103,8 @@
   touch-action: none;
 }
 
-/* ══ ASCII wake ════════════════════════════════════════════ */
+/* ══ ASCII wake (Bencho.dev) ═══════════════════════════════════════════════ */
 .asc {
-  /* Bencho design tokens scoped locally on the component's own root */
   --ink: currentColor;
   --fill-on: var(--ink);
   position: relative;
@@ -38,10 +120,7 @@
   color: var(--fill-on, var(--ink));
 }
 
-/* ══ AsciiBlobOrb ══════════════════════════════════════════
-   Orbe Blobtar Biomorphic ASCII interactivo.
-   Combina morfología viva fluida, física de resortes Bencho
-   y estela térmica con glifos ASCII y shimmer terminal. */
+/* ══ AsciiBlobOrb (Blobtar Biomorphic ASCII) ═══════════════════════════════ */
 .ascii-blob-orb {
   --ink: currentColor;
   --fill-on: var(--ink);
@@ -60,3 +139,104 @@
   cursor: crosshair;
 }
 
+/* ══ Animaciones Físicas de Tabla «Pilar» (UI-01) y Panel «Costado» (UI-02) ══ */
+@keyframes pi-clava {
+  0% {
+    transform: translateY(-8px) scale(1.45) rotate(-20deg);
+  }
+  45% {
+    transform: translateY(1.5px) scale(0.92) rotate(4deg);
+  }
+  70% {
+    transform: translateY(-1px) scale(1.06);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes pi-no {
+  20% {
+    transform: translateX(-5px);
+  }
+  45% {
+    transform: translateX(5px);
+  }
+  70% {
+    transform: translateX(-3px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes pi-bota {
+  30% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes co-onda {
+  0% {
+    box-shadow: inset 0 0 0 0 rgba(255, 255, 255, 0.65);
+  }
+  100% {
+    box-shadow: inset 0 0 0 22px rgba(255, 255, 255, 0);
+  }
+}
+
+.animate-pin-clava {
+  animation: pi-clava 0.7s var(--ease-out-expo);
+}
+
+.animate-shake-no {
+  animation: pi-no 0.36s var(--ease-out-expo);
+}
+
+.animate-copy-wave::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  animation: co-onda 0.75s var(--ease-out-expo) both;
+  pointer-events: none;
+}
+
+/* Transición de densidad de filas en ola (Cascading Wave Density de Pilar) */
+.pilar-wave-row {
+  transition:
+    height 0.55s var(--ease-wave) calc(var(--row-idx, 0) * 26ms),
+    background-color 0.15s ease;
+}
+
+/* Container Queries para Maestro-Detalle de Costado */
+.costado-table-container {
+  container-type: inline-size;
+  container-name: vaultlist;
+}
+
+@container vaultlist (max-width: 780px) {
+  .col-hide-md {
+    display: none !important;
+  }
+}
+
+@container vaultlist (max-width: 620px) {
+  .col-hide-sm {
+    display: none !important;
+  }
+}
+
+/* Accesibilidad: Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .pilar-wave-row,
+  .animate-pin-clava,
+  .animate-shake-no,
+  .animate-copy-wave::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}

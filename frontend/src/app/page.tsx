@@ -43,13 +43,97 @@ const CryptoAsciiBoard = dynamic(
   { ssr: false }
 );
 
-const SAMPLE_SEEDS = [
-  "HackaTwin-Sphere-01",
-  "CriteriaLock-Agent-02",
-  "TwinFinance-Avalanche-03",
-  "BeloFlow-Stable-04",
-  "Bencho-Minimal-05",
+export const SHAPE_SEED_PRESETS: Array<{
+  id: string;
+  label: string;
+  shape: string;
+  seed: string;
+  icon: string;
+  description: string;
+}> = [
+  {
+    id: "capsule",
+    label: "Cápsula",
+    shape: "capsule",
+    seed: "BeloFlow-Stable-04",
+    icon: "💊",
+    description: "Estadio horizontal con dos casquetes curvos",
+  },
+  {
+    id: "organic",
+    label: "Orgánico",
+    shape: "organic",
+    seed: "CriteriaLock-Agent-02",
+    icon: "🧬",
+    description: "Spline polar biológico asimétrico",
+  },
+  {
+    id: "round",
+    label: "Redondo",
+    shape: "round",
+    seed: "HackaTwin-Sphere-01",
+    icon: "⚪",
+    description: "Superelipse armónica canónica",
+  },
+  {
+    id: "boxy",
+    label: "Boxy",
+    shape: "boxy",
+    seed: "Seed-1",
+    icon: "🟩",
+    description: "Cuadrante suavizado con leve rotación",
+  },
+  {
+    id: "cloud",
+    label: "Nube",
+    shape: "cloud",
+    seed: "Seed-0",
+    icon: "☁️",
+    description: "Masa base con 4-6 lóbulos superiores",
+  },
+  {
+    id: "hexagon",
+    label: "Hexágono",
+    shape: "hexagon",
+    seed: "Seed-12",
+    icon: "⬡",
+    description: "Polígono de 6 lados con vértices redondeados",
+  },
+  {
+    id: "triangle",
+    label: "Triángulo",
+    shape: "triangle",
+    seed: "Seed-31",
+    icon: "🔺",
+    description: "Polígono de 3 lados apoyado en su base",
+  },
+  {
+    id: "sun",
+    label: "Sol",
+    shape: "sun",
+    seed: "Seed-70",
+    icon: "☀️",
+    description: "Núcleo con rayos solares perimetrales",
+  },
+  {
+    id: "droplet",
+    label: "Gota",
+    shape: "droplet",
+    seed: "Seed-7",
+    icon: "💧",
+    description: "Base curva con ápice superior alargado",
+  },
+  {
+    id: "nub",
+    label: "Nub",
+    shape: "nub",
+    seed: "Seed-5",
+    icon: "🫧",
+    description: "Cuerpo con protuberancias orgánicas",
+  },
 ];
+
+const SAMPLE_SEEDS = SHAPE_SEED_PRESETS.map((p) => p.seed);
 
 export type PrototypeView = "compare" | "ascii-blob" | "sphere-3d" | "escrow" | "crypto-board";
 
@@ -95,7 +179,7 @@ export default function Home() {
   const [protoView, setProtoView] = useState<PrototypeView>("compare");
   const [mode, setMode] = useState<OrbMode>("idle");
   const [paletteIndex, setPaletteIndex] = useState(0);
-  const [seedIndex, setSeedIndex] = useState(0);
+  const [currentSeed, setCurrentSeed] = useState("BeloFlow-Stable-04");
   const [activeTab, setActiveTab] = useState<"escrow" | "chat">("escrow");
   const [showOrbitRing, setShowOrbitRing] = useState(true);
   const [orbType, setOrbType] = useState<"sphere" | "blob">("blob");
@@ -116,7 +200,6 @@ export default function Home() {
     setGenesisKey((prev) => prev + 1);
   };
 
-  const currentSeed = SAMPLE_SEEDS[seedIndex % SAMPLE_SEEDS.length];
   const paletteName =
     paletteIndex === 0
       ? "monochrome"
@@ -128,16 +211,20 @@ export default function Home() {
       ? "emerald"
       : "amber";
 
-  // Check URL query param ?proto=compare|ascii-blob|sphere-3d|escrow
+  // Check URL query params ?proto=compare|ascii-blob|sphere-3d|escrow & ?seed=...
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const protoParam = params.get("proto") as PrototypeView | null;
       if (
         protoParam &&
-        ["compare", "ascii-blob", "sphere-3d", "escrow"].includes(protoParam)
+        ["compare", "ascii-blob", "sphere-3d", "escrow", "crypto-board"].includes(protoParam)
       ) {
         setProtoView(protoParam);
+      }
+      const seedParam = params.get("seed");
+      if (seedParam) {
+        setCurrentSeed(seedParam);
       }
     }
   }, []);
@@ -173,7 +260,9 @@ export default function Home() {
   };
 
   const handleSeedRandomize = () => {
-    setSeedIndex((prev) => prev + 1);
+    const currentIndex = SAMPLE_SEEDS.indexOf(currentSeed);
+    const nextIndex = (currentIndex + 1) % SAMPLE_SEEDS.length;
+    setCurrentSeed(SAMPLE_SEEDS[nextIndex]);
   };
 
   return (
@@ -298,6 +387,50 @@ export default function Home() {
                   <span>Replay Génesis</span>
                 </button>
               </div>
+
+              {/* Selector interactivo de Siluetas y Mutación de Formas Blobatar */}
+              <div className="flex flex-col items-center gap-2.5 w-full max-w-4xl mt-1">
+                <div className="flex items-center justify-between w-full px-2 text-xs font-mono text-zinc-400">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                    <span className="text-zinc-200 font-semibold uppercase tracking-wider">Siluetas de Blobatar</span>
+                    <span className="text-zinc-500 hidden sm:inline">• Elige una forma para mutar la geometría de ambos orbes al unísono:</span>
+                  </span>
+                  <span className="text-zinc-500 text-[11px]">
+                    Semilla: <span className="text-cyan-400 font-semibold">{currentSeed}</span>
+                  </span>
+                </div>
+
+                <div className="w-full flex items-center gap-1.5 p-1.5 rounded-2xl bg-[#09090b]/90 border border-zinc-800/80 backdrop-blur-xl overflow-x-auto shadow-xl">
+                  {SHAPE_SEED_PRESETS.map((preset) => {
+                    const isSelected = currentSeed === preset.seed;
+                    return (
+                      <button
+                        key={preset.id}
+                        onClick={() => setCurrentSeed(preset.seed)}
+                        title={preset.description}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono transition-all whitespace-nowrap cursor-pointer ${
+                          isSelected
+                            ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-md font-semibold"
+                            : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 border border-transparent"
+                        }`}
+                      >
+                        <span>{preset.icon}</span>
+                        <span>{preset.label}</span>
+                      </button>
+                    );
+                  })}
+                  <div className="w-[1px] h-5 bg-zinc-800 mx-1 flex-shrink-0" />
+                  <button
+                    onClick={handleSeedRandomize}
+                    title="Mutar a la siguiente silueta"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono text-zinc-300 hover:text-white bg-zinc-800/80 hover:bg-zinc-700/80 border border-zinc-700/60 transition-all cursor-pointer whitespace-nowrap flex-shrink-0"
+                  >
+                    <RefreshCw className="w-3 h-3 text-cyan-400" />
+                    <span>Mutar</span>
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Side-by-Side Cards Grid */}
@@ -327,7 +460,11 @@ export default function Home() {
                 </div>
 
                 {/* Technical Specs Footer */}
-                <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-zinc-800/80 text-center">
+                <div className="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-zinc-800/80 text-center">
+                  <div className="p-2 rounded bg-[#0d0d10] border border-zinc-800/50">
+                    <span className="text-[10px] font-mono text-zinc-500 uppercase block">Silueta</span>
+                    <span className="text-xs font-semibold text-amber-400">Vector SVG Path</span>
+                  </div>
                   <div className="p-2 rounded bg-[#0d0d10] border border-zinc-800/50">
                     <span className="text-[10px] font-mono text-zinc-500 uppercase block">Ojos</span>
                     <span className="text-xs font-semibold text-zinc-300">Cápsulas Sólidas</span>
@@ -338,7 +475,7 @@ export default function Home() {
                   </div>
                   <div className="p-2 rounded bg-[#0d0d10] border border-zinc-800/50">
                     <span className="text-[10px] font-mono text-zinc-500 uppercase block">Motor</span>
-                    <span className="text-xs font-semibold text-amber-400">Vector SVG Path</span>
+                    <span className="text-xs font-semibold text-zinc-300">DOM Vector</span>
                   </div>
                 </div>
               </div>
@@ -361,6 +498,7 @@ export default function Home() {
                 {/* ASCII Blobatar Viewport */}
                 <div className="relative w-full aspect-square max-h-[380px] flex items-center justify-center bg-black rounded-xl border border-zinc-900 overflow-hidden cursor-crosshair group">
                   <AsciiBlobOrb
+                    seed={currentSeed}
                     mode={mode}
                     palette={paletteName}
                     glyphs="Classic"
@@ -385,14 +523,18 @@ export default function Home() {
                 </div>
 
                 {/* Technical Specs Footer */}
-                <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-zinc-800/80 text-center">
+                <div className="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-zinc-800/80 text-center">
+                  <div className="p-2 rounded bg-[#0d0d10] border border-zinc-800/50">
+                    <span className="text-[10px] font-mono text-zinc-500 uppercase block">Silueta</span>
+                    <span className="text-xs font-semibold text-cyan-400">Blobatar Morph</span>
+                  </div>
                   <div className="p-2 rounded bg-[#0d0d10] border border-zinc-800/50">
                     <span className="text-[10px] font-mono text-zinc-500 uppercase block">Ojos</span>
                     <span className="text-xs font-semibold text-emerald-400">Huecos Negativos</span>
                   </div>
                   <div className="p-2 rounded bg-[#0d0d10] border border-zinc-800/50">
                     <span className="text-[10px] font-mono text-zinc-500 uppercase block">Física</span>
-                    <span className="text-xs font-semibold text-blue-400">Spring-Damper Euler</span>
+                    <span className="text-xs font-semibold text-blue-400">Spring-Damper</span>
                   </div>
                   <div className="p-2 rounded bg-[#0d0d10] border border-zinc-800/50">
                     <span className="text-[10px] font-mono text-zinc-500 uppercase block">Estela</span>
@@ -475,6 +617,7 @@ export default function Home() {
             <div className="relative w-full h-full flex items-center justify-center">
               <div className="w-[85vw] h-[75vh] max-w-[760px] max-h-[760px] rounded-2xl overflow-hidden cursor-crosshair">
                 <AsciiBlobOrb
+                  seed={currentSeed}
                   mode={mode}
                   palette={paletteName}
                   glyphs="Classic"
@@ -554,6 +697,7 @@ export default function Home() {
                   {/* The Orb Component */}
                   {orbType === "blob" ? (
                     <AsciiBlobOrb
+                      seed={currentSeed}
                       mode={mode}
                       palette={paletteName}
                       glyphs="Classic"

@@ -13,8 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Twin Finance // 3D ASCII Agent & CriteriaLock",
-  description: "Agentic Smart Escrow & 3D ASCII Biomorphic Sphere Assistant on Avalanche / Twin Protocol",
+  title: "CriteriaLock // Bloqueo de Plata & Smart Escrow Onchain (Twin Finance)",
+  description:
+    "Protocolo de custodia inteligente en ARGt y USDT sobre Avalanche C-Chain. Bloqueá la plata, fijá criterios de aceptación verificables y cobrá al segundo.",
 };
 
 export default function RootLayout({
@@ -27,7 +28,7 @@ export default function RootLayout({
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
     >
-      <body className="min-h-full bg-black text-zinc-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
+      <body className="min-h-full bg-[#000000] text-zinc-100 flex flex-col font-sans selection:bg-white selection:text-black">
         {children}
       </body>
     </html>
