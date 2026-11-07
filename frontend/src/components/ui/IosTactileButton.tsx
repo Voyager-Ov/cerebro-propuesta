@@ -6,7 +6,11 @@ import { AsciiTextSpinner } from "@/components/AsciiTextSpinner";
 
 export interface IosTactileButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary-white" | "carbon-matte" | "ghost-ascii";
+  variant?:
+    | "primary-white"
+    | "primary-accent"
+    | "carbon-matte"
+    | "ghost-ascii";
   size?: "sm" | "md" | "lg";
   asciiPrefix?: string;
   showArrow?: boolean;
@@ -72,18 +76,20 @@ export function IosTactileButton({
   };
 
   const sizeClasses = {
-    sm: "h-8 px-3 text-xs rounded-lg gap-1.5",
-    md: "h-10 px-4 text-xs sm:text-sm rounded-xl gap-2",
-    lg: "h-12 px-5 sm:px-6 text-sm rounded-xl gap-2.5",
+    sm: "min-h-[38px] px-3 text-xs rounded-lg gap-1.5",
+    md: "min-h-[44px] px-4 text-xs sm:text-sm rounded-xl gap-2",
+    lg: "min-h-[48px] px-5 sm:px-6 text-sm rounded-xl gap-2.5",
   }[size];
 
   const variantClasses = {
     "primary-white":
       "bg-white text-black font-semibold border border-white ios-bevel-white hover:bg-zinc-100 active:bg-zinc-200",
+    "primary-accent":
+      "bg-pinterest-primary font-semibold border border-pinterest-accent ios-bevel-accent hover:brightness-110 active:brightness-95",
     "carbon-matte":
-      "bg-[#0d0d10] text-zinc-100 font-medium border border-[#27272a] ios-bevel-dark hover:border-zinc-500 hover:bg-[#141418] hover:text-white",
+      "bg-[#0d0d10] text-zinc-100 font-medium border border-[#27272a] ios-bevel-dark hover:border-pinterest-accent hover:bg-[#141418] hover:text-white",
     "ghost-ascii":
-      "bg-transparent text-zinc-400 font-mono border border-transparent hover:border-[#27272a] hover:bg-[#0d0d10] hover:text-white",
+      "bg-transparent text-zinc-300 font-mono border border-transparent hover:border-[#27272a] hover:bg-[#0d0d10] hover:text-white",
   }[variant];
 
   return (
@@ -93,7 +99,7 @@ export function IosTactileButton({
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerLeave}
-      className={`group relative inline-flex items-center justify-center select-none whitespace-nowrap transition-colors duration-150 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black ${sizeClasses} ${variantClasses} ${className}`}
+      className={`group relative inline-flex items-center justify-center select-none whitespace-nowrap transition-all duration-150 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-bright)] focus-visible:ring-offset-2 focus-visible:ring-offset-black ${sizeClasses} ${variantClasses} ${className}`}
       {...rest}
     >
       {isLoading ? (
@@ -103,7 +109,7 @@ export function IosTactileButton({
             className={
               variant === "primary-white"
                 ? "text-black font-mono text-xs"
-                : "text-white font-mono text-xs"
+                : "text-current font-mono text-xs"
             }
           />
           <span>{loadingLabel || children}</span>
@@ -115,7 +121,9 @@ export function IosTactileButton({
               className={`font-mono text-[11px] tracking-tighter ${
                 variant === "primary-white"
                   ? "text-zinc-700"
-                  : "text-zinc-500 group-hover:text-zinc-300"
+                  : variant === "primary-accent"
+                  ? "opacity-80"
+                  : "text-pinterest-ice group-hover:text-white"
               }`}
             >
               [{asciiPrefix}]

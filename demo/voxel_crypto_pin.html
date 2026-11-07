@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voxel Crypto Coin — Referencia Pinterest Pin 636063147423013825</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+
+    :root {
+      --cobalt: #0b3fe6;
+      --cobalt-dark: #0028b8;
+      --paper: #f0f3f8;
+      --ink: #0a0b10;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--cobalt);
+      color: #ffffff;
+      font-family: 'Space Mono', monospace;
+      overflow-x: hidden;
+      user-select: none;
+    }
+
+    .font-pixel {
+      font-family: 'Silkscreen', cursive;
+      letter-spacing: -0.05em;
+    }
+
+    /* Patrón de dispersión de píxeles (Dither / Dispersion) */
+    .pixel-dispersion {
+      background-image: radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 0);
+      background-size: 16px 16px;
+    }
+
+    /* Botón pixelado táctil */
+    .btn-pixel {
+      border: 2px solid #ffffff;
+      box-shadow: 3px 3px 0px #001a80;
+      transition: all 0.1s ease;
+    }
+    .btn-pixel:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0px #001a80;
+    }
+    .btn-pixel.active {
+      background-color: #ffffff;
+      color: #0b3fe6;
+      box-shadow: 1px 1px 0px #001a80;
+      transform: translate(2px, 2px);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between relative">
+
+  <!-- ==================================================================== -->
+  <!-- SECCIÓN SUPERIOR: POSTER SEGMINT ESTILO PINTEREST                    -->
+  <!-- ==================================================================== -->
+  <header class="w-full max-w-5xl mx-auto pt-8 px-6 text-center relative z-20">
+    <div class="flex items-center justify-between text-xs tracking-widest opacity-80 uppercase mb-4">
+      <span>[ THREE.JS R186 ]</span>
+      <span>• VOXEL MATRIX ENGINE •</span>
+      <span>[ ARTIFACT #636063 ]</span>
+    </div>
+
+    <!-- Título Principal con Tipografía Pixelada Estilo Pin -->
+    <h1 class="font-pixel text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.35)]">
+      THANKS FOR WATCH
+    </h1>
+
+    <!-- Selector de Moneda Voxel -->
+    <div class="mt-6 flex flex-wrap items-center justify-center gap-2">
+      <button onclick="switchToken('ETH')" id="btn-ETH" class="btn-pixel active px-3.5 py-1.5 text-xs font-bold uppercase">
+        ETH (Ethereum)
+      </button>
+      <button onclick="switchToken('BTC')" id="btn-BTC" class="btn-pixel px-3.5 py-1.5 text-xs font-bold uppercase">
+        BTC (Bitcoin)
+      </button>
+      <button onclick="switchToken('SOL')" id="btn-SOL" class="btn-pixel px-3.5 py-1.5 text-xs font-bold uppercase">
+        SOL (Solana)
+      </button>
+      <button onclick="switchToken('AVAX')" id="btn-AVAX" class="btn-pixel px-3.5 py-1.5 text-xs font-bold uppercase">
+        AVAX (Avalanche)
+      </button>
+      <button onclick="switchToken('USDT')" id="btn-USDT" class="btn-pixel px-3.5 py-1.5 text-xs font-bold uppercase">
+        USDT (Tether)
+      </button>
+      <button onclick="switchToken('USDC')" id="btn-USDC" class="btn-pixel px-3.5 py-1.5 text-xs font-bold uppercase">
+        USDC (USD Coin)
+      </button>
+      <button onclick="switchToken('DAI')" id="btn-DAI" class="btn-pixel px-3.5 py-1.5 text-xs font-bold uppercase">
+        DAI (Maker)
+      </button>
+      <button onclick="switchToken('ARGT')" id="btn-ARGT" class="btn-pixel px-3.5 py-1.5 text-xs font-bold uppercase">
+        ARGt (Belo)
+      </button>
+    </div>
+  </header>
+
+  <!-- ==================================================================== -->
+  <!-- CANVAS CENTRAL: ESCENARIO 3D VOXEL COIN                              -->
+  <!-- ==================================================================== -->
+  <main class="relative w-full flex-1 min-h-[460px] md:min-h-[540px] flex items-center justify-center my-2">
+    <div id="canvas-container" class="absolute inset-0 cursor-grab active:cursor-grabbing"></div>
+
+    <!-- Indicador de Hover / Control con el Mouse -->
+    <div class="absolute bottom-4 left-6 z-20 pointer-events-none text-xs tracking-wider opacity-75">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-white animate-ping"></span>
+        <span>MUEVE EL RATÓN: ROTACIÓN 3D & RELIEVE VOXEL</span>
+      </div>
+    </div>
+
+    <div class="absolute bottom-4 right-6 z-20 pointer-events-none text-right text-xs tracking-wider opacity-75">
+      <div id="stat-voxels">1,248 VOXELS ACTIVOS</div>
+      <div id="stat-token" class="font-bold text-white">ETHEREUM VOXEL EMBOSS</div>
+    </div>
+  </main>
+
+  <!-- ==================================================================== -->
+  <!-- ZONA INFERIOR: DISPERSIÓN DE PÍXELES & FOOTER EDITORIAL SUÍZO        -->
+  <!-- ==================================================================== -->
+  <div class="relative w-full bg-[#f0f3f8] text-[#0a0b10] pt-12 pb-8 px-6 md:px-12 border-t-4 border-black">
+    <!-- Nube de dispersión pixelada flotante en la transición -->
+    <div class="absolute -top-10 left-0 right-0 h-10 overflow-hidden pointer-events-none flex justify-center gap-1 opacity-90">
+      <div class="w-4 h-4 bg-[#f0f3f8] mt-4"></div>
+      <div class="w-3 h-3 bg-[#f0f3f8] mt-2"></div>
+      <div class="w-5 h-5 bg-[#f0f3f8] mt-5"></div>
+      <div class="w-4 h-4 bg-[#f0f3f8] mt-1"></div>
+      <div class="w-3 h-3 bg-[#f0f3f8] mt-6"></div>
+      <div class="w-5 h-5 bg-[#f0f3f8] mt-3"></div>
+      <div class="w-4 h-4 bg-[#f0f3f8] mt-5"></div>
+      <div class="w-3 h-3 bg-[#f0f3f8] mt-2"></div>
+      <div class="w-6 h-6 bg-[#f0f3f8] mt-4"></div>
+      <div class="w-4 h-4 bg-[#f0f3f8] mt-1"></div>
+      <div class="w-3 h-3 bg-[#f0f3f8] mt-6"></div>
+      <div class="w-5 h-5 bg-[#f0f3f8] mt-3"></div>
+      <div class="w-4 h-4 bg-[#f0f3f8] mt-4"></div>
+    </div>
+
+    <div class="max-w-5xl mx-auto flex flex-col md:flex-row items-start md:items-end justify-between gap-8">
+      <!-- Marca Editorial Izquierda (Estilo Poster Segmint) -->
+      <div>
+        <div class="font-pixel text-3xl md:text-4xl font-bold tracking-tight text-blue-700">
+          SEGMINT<br>2026
+        </div>
+        <div class="text-[11px] font-sans tracking-wide text-zinc-600 mt-2 max-w-xs">
+          MARKETING APPROACH IN WEB3 PROTOCOLS WITH VOXEL RELIEF & THREE.JS 3D DESIGN
+        </div>
+      </div>
+
+      <!-- Bloque Central: Explicación Técnica -->
+      <div class="text-xs space-y-1 font-mono text-zinc-700 border-l-2 border-zinc-400 pl-4">
+        <div><strong>ESTÁNDAR:</strong> 3D Instanced Voxel Coin</div>
+        <div><strong>INTERACCIÓN:</strong> Hooke's Law Spring-Damper Hover</div>
+        <div><strong>ESTÉTICA:</strong> Pinterest Pin #636063147423013825</div>
+      </div>
+
+      <!-- Bloque Derecho: Tags -->
+      <div class="text-right text-xs font-mono text-zinc-600">
+        <div class="tracking-widest">[ WEB 3 ] [ NFT ] [ DEFI ]</div>
+        <div class="mt-1 text-[10px] text-zinc-400">© BY HACKTWIN CREATIVE LABS</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- THREE.JS R186: VOXEL ENGINE COMPLETO                                 -->
+  <!-- ==================================================================== -->
+  <script type="module">
+    import * as THREE from 'three';
+
+    // ═══ CONFIGURACIÓN Y MODELO DE ALTURAS VOXEL ═══
+    const GRID_SIZE = 34; // Cuadrícula de 34x34 cubos
+    const CUBE_SIZE = 0.12;
+    const CUBE_GAP = 0.015;
+    const STEP = CUBE_SIZE + CUBE_GAP;
+    const RADIUS = (GRID_SIZE / 2) * STEP * 0.94; // Radio del disco circular
+
+    let currentTokenId = 'ETH';
+    let currentThemeColor = 0x1e50ff; // Azul cobalto de la referencia
+
+    const TOKEN_PALETTES = {
+      ETH: { coin: 0x1e50ff, emboss: 0x4d79ff, highlight: 0xffffff, light: 0x0044ff, name: "ETHEREUM VOXEL EMBOSS" },
+      BTC: { coin: 0xd97706, emboss: 0xfbbf24, highlight: 0xffedd5, light: 0xb45309, name: "BITCOIN UTXO 3D DISC" },
+      SOL: { coin: 0x059669, emboss: 0x34d399, highlight: 0xa7f3d0, light: 0x10b981, name: "SOLANA SPEED SLABS" },
+      AVAX: { coin: 0xdc2626, emboss: 0xf87171, highlight: 0xfecaca, light: 0xb91c1c, name: "AVALANCHE DELTA PEAK" },
+      USDT: { coin: 0x0f766e, emboss: 0x2dd4bf, highlight: 0xccfbf1, light: 0x14b8a6, name: "TETHER VAULT PILLAR" },
+      USDC: { coin: 0x1d4ed8, emboss: 0x60a5fa, highlight: 0xdbeafe, light: 0x2563eb, name: "USD COIN CONCENTRIC" },
+      DAI: { coin: 0xb45309, emboss: 0xf59e0b, highlight: 0xfef3c7, light: 0xd97706, name: "MAKERDAO DAI CROSS" },
+      ARGT: { coin: 0x0284c7, emboss: 0x38bdf8, highlight: 0xfef08a, light: 0x0ea5e9, name: "ARGT BELO SOL DE MAYO" },
+    };
+
+    // ═══ GENERADORES DE MÁSCARA 2D DE LOGO (EMBOSS HEIGHT) ═══
+    function getVoxelHeight(tokenId, u, v) {
+      // u, v en el rango normalizado [-1, 1]
+      const dist = Math.hypot(u, v);
+      if (dist > 0.95) return 0; // Fuera de la moneda circular
+
+      // Altura base de la moneda cilíndrica
+      let h = 1.0;
+
+      // Micro-relieve sutil en la superficie (textura arquitectónica de la foto de referencia)
+      const noise = ((Math.sin(u * 18.0) * Math.cos(v * 18.0) + 1.0) * 0.5);
+      if (noise > 0.82) h += 0.22;
+
+      // Relieve esculpido según el logo
+      switch (tokenId) {
+        case 'ETH': {
+          // Diamante Ethereum con faceta superior e inferior
+          const absU = Math.abs(u);
+          // Pirámide Superior
+          if (v >= 0.04 && v <= 0.65) {
+            const widthAtV = 0.44 * (1.0 - (v - 0.04) / 0.61);
+            if (absU <= widthAtV) {
+              const facetHeight = (1.0 - absU / (widthAtV + 0.01)) * 0.9;
+              h += 1.2 + facetHeight;
+              if (u > 0) h += 0.25; // Sombra/facetado de luz en la arista derecha
+            }
+          }
+          // Pirámide Inferior
+          if (v <= -0.04 && v >= -0.65) {
+            const widthAtV = 0.44 * (1.0 - (-v - 0.04) / 0.61);
+            if (absU <= widthAtV) {
+              const facetHeight = (1.0 - absU / (widthAtV + 0.01)) * 0.7;
+              h += 1.0 + facetHeight;
+              if (u > 0) h += 0.25;
+            }
+          }
+          break;
+        }
+
+        case 'BTC': {
+          // Emblema Bitcoin con barra vertical y 2 bucles
+          const absU = Math.abs(u);
+          // Prongs verticales superior e inferior
+          if (absU < 0.22 && ((v > 0.55 && v < 0.72) || (v < -0.55 && v > -0.72))) {
+            h += 1.1;
+          }
+          // Columna vertical
+          if (u >= -0.28 && u <= -0.12 && v >= -0.55 && v <= 0.55) {
+            h += 1.3;
+          }
+          // Bucle Superior
+          if (u >= -0.12 && u <= 0.32 && v >= 0.05 && v <= 0.52) {
+            const inHole = (u >= -0.02 && u <= 0.18 && v >= 0.16 && v <= 0.41);
+            if (!inHole) h += 1.35;
+          }
+          // Bucle Inferior
+          if (u >= -0.12 && u <= 0.36 && v >= -0.52 && v <= 0.05) {
+            const inHole = (u >= -0.02 && u <= 0.22 && v >= -0.41 && v <= -0.08);
+            if (!inHole) h += 1.35;
+          }
+          break;
+        }
+
+        case 'SOL': {
+          // Tres barras diagonales de Solana
+          for (let b = -1; b <= 1; b++) {
+            const centerY = b * 0.36;
+            const dy = v - (centerY + u * 0.22);
+            if (Math.abs(dy) < 0.11 && Math.abs(u) < 0.52) {
+              h += 1.25;
+            }
+          }
+          break;
+        }
+
+        case 'AVAX': {
+          // Triángulo Avalanche con hueco interior en A
+          if (v >= -0.55 && v <= 0.65) {
+            const halfW = 0.55 * (1.0 - (v + 0.55) / 1.2);
+            if (Math.abs(u) <= halfW) {
+              // Hueco interior
+              const innerHalfW = 0.25 * (1.0 - (v + 0.35) / 0.8);
+              const inInner = v >= -0.35 && v <= 0.45 && Math.abs(u) <= innerHalfW;
+              if (!inInner) h += 1.4;
+            }
+          }
+          break;
+        }
+
+        case 'USDT': {
+          // T de Tether y soporte de bóveda
+          if (v >= 0.25 && v <= 0.45 && Math.abs(u) <= 0.5) h += 1.35; // Barra horizontal
+          if (Math.abs(u) <= 0.13 && v >= -0.52 && v <= 0.45) h += 1.4; // Tallo vertical
+          // Cuadro central
+          if (Math.abs(u) <= 0.38 && Math.abs(v) <= 0.18) h += 0.8;
+          break;
+        }
+
+        case 'USDC': {
+          // Anillo concéntrico y símbolo de dólar $
+          const r = Math.hypot(u, v);
+          if (r >= 0.38 && r <= 0.56) h += 1.3;
+          if (Math.abs(u) <= 0.08 && Math.abs(v) <= 0.32) h += 1.4; // Barra vertical
+          if (Math.abs(v) <= 0.16 && Math.abs(u) <= 0.18) h += 1.2; // Curva S
+          break;
+        }
+
+        case 'DAI': {
+          // Maker D con doble barra transversal
+          if (u >= -0.32 && u <= -0.14 && Math.abs(v) <= 0.52) h += 1.3; // Espina D
+          if (u >= -0.14 && u <= 0.35 && Math.abs(v) <= 0.52) {
+            const inD = Math.hypot((u + 0.14) / 0.45, v / 0.52) <= 1.0;
+            const inHole = Math.hypot((u + 0.14) / 0.26, v / 0.32) <= 1.0;
+            if (inD && !inHole) h += 1.35;
+          }
+          // Doble barra
+          if (Math.abs(v - 0.12) < 0.06 && u >= -0.38 && u <= 0.38) h += 1.5;
+          if (Math.abs(v + 0.12) < 0.06 && u >= -0.38 && u <= 0.38) h += 1.5;
+          break;
+        }
+
+        case 'ARGT': {
+          // Sol de Mayo con rayos
+          const r = Math.hypot(u, v);
+          if (r <= 0.28) h += 1.4; // Disco central
+          // 8 Rayos
+          const angle = Math.atan2(v, u);
+          const ray = Math.abs(Math.sin(angle * 4.0));
+          if (ray > 0.82 && r > 0.28 && r < 0.65) h += 1.1;
+          break;
+        }
+      }
+
+      return h;
+    }
+
+    // ═══ SETUP DE THREE.JS R186 ═══
+    const canvasContainer = document.getElementById('canvas-container');
+    const width = canvasContainer.clientWidth;
+    const height = canvasContainer.clientHeight;
+
+    const scene = new THREE.Scene();
+    scene.background = null; // Transparente para respetar el color de fondo
+
+    const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
+    camera.position.set(0, -0.6, 5.2);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(width, height);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.25;
+    canvasContainer.appendChild(renderer.domElement);
+
+    // Luces PBR
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+    scene.add(ambientLight);
+
+    const sunLight = new THREE.DirectionalLight(0xffffff, 2.4);
+    sunLight.position.set(5, 8, 6);
+    scene.add(sunLight);
+
+    const rimLight = new THREE.DirectionalLight(0xffffff, 1.8);
+    rimLight.position.set(-5, -4, 3);
+    scene.add(rimLight);
+
+    const pointLight = new THREE.PointLight(0xffffff, 3.5, 12);
+    pointLight.position.set(0, 0, 3);
+    scene.add(pointLight);
+
+    // ═══ CONSTRUCCIÓN DEL INSTANCED MESH DE VOXELS ═══
+    const maxInstances = GRID_SIZE * GRID_SIZE;
+    const cubeGeometry = new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
+    
+    // Material con brillo biselado y rugosidad táctil
+    const cubeMaterial = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      metalness: 0.25,
+      roughness: 0.28,
+    });
+
+    const instancedMesh = new THREE.InstancedMesh(cubeGeometry, cubeMaterial, maxInstances);
+    instancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    scene.add(instancedMesh);
+
+    // Grupo de rotación que contiene la moneda voxel
+    const coinGroup = new THREE.Group();
+    scene.add(coinGroup);
+    coinGroup.add(instancedMesh);
+
+    // Partículas dispersas alrededor de la moneda (como el polvo pixelado del póster)
+    const dustCount = 80;
+    const dustGeo = new THREE.BoxGeometry(CUBE_SIZE * 0.7, CUBE_SIZE * 0.7, CUBE_SIZE * 0.7);
+    const dustMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 });
+    const dustMesh = new THREE.InstancedMesh(dustGeo, dustMat, dustCount);
+    coinGroup.add(dustMesh);
+
+    const dustDummy = new THREE.Object3D();
+    const dustPositions = [];
+    for (let i = 0; i < dustCount; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const r = RADIUS * 1.1 + Math.random() * 1.2;
+      const x = Math.cos(angle) * r;
+      const y = Math.sin(angle) * r - (Math.random() * 0.8); // Más dispersión hacia abajo
+      const z = (Math.random() - 0.5) * 1.2;
+      dustPositions.push({ x, y, z, baseAngle: angle, speed: 0.002 + Math.random() * 0.005 });
+      dustDummy.position.set(x, y, z);
+      dustDummy.scale.setScalar(0.4 + Math.random() * 0.8);
+      dustDummy.updateMatrix();
+      dustMesh.setMatrixAt(i, dustDummy.matrix);
+    }
+    dustMesh.instanceMatrix.needsUpdate = true;
+
+    // Actualización de la geometría voxel
+    const dummy = new THREE.Object3D();
+    const tempColor = new THREE.Color();
+
+    let activeVoxelCount = 0;
+
+    function buildVoxelCoin(tokenId) {
+      const palette = TOKEN_PALETTES[tokenId] || TOKEN_PALETTES.ETH;
+      let idx = 0;
+      const half = GRID_SIZE / 2;
+
+      for (let ix = 0; ix < GRID_SIZE; ix++) {
+        for (let iy = 0; iy < GRID_SIZE; iy++) {
+          const u = (ix - half + 0.5) / half;
+          const v = (iy - half + 0.5) / half;
+
+          const h = getVoxelHeight(tokenId, u, v);
+
+          if (h > 0) {
+            const posX = (ix - half) * STEP;
+            const posY = (iy - half) * STEP;
+            const posZ = (h * CUBE_SIZE) / 2; // Elevación
+
+            dummy.position.set(posX, posY, posZ);
+            dummy.scale.set(1.0, 1.0, h);
+            dummy.updateMatrix();
+
+            instancedMesh.setMatrixAt(idx, dummy.matrix);
+
+            // Asignación de color según elevación
+            if (h > 2.0) {
+              tempColor.set(palette.highlight); // Cara superior más luminosa
+            } else if (h > 1.2) {
+              tempColor.set(palette.emboss); // Relieve del logo
+            } else {
+              tempColor.set(palette.coin); // Base de la moneda
+            }
+
+            instancedMesh.setColorAt(idx, tempColor);
+            idx++;
+          }
+        }
+      }
+
+      activeVoxelCount = idx;
+      instancedMesh.count = activeVoxelCount;
+      instancedMesh.instanceMatrix.needsUpdate = true;
+      if (instancedMesh.instanceColor) instancedMesh.instanceColor.needsUpdate = true;
+
+      // Actualizar telemetría visual
+      document.getElementById('stat-voxels').innerText = `${activeVoxelCount} VOXELS ACTIVOS`;
+      document.getElementById('stat-token').innerText = palette.name;
+    }
+
+    buildVoxelCoin('ETH');
+
+    // ═══ INTERACCIÓN CON RATÓN Y FÍSICA SPRING-DAMPER ═══
+    let mouseX = 0;
+    let mouseY = 0;
+    let targetRotX = 0.45; // Ángulo isométrico inicial (similar a la imagen del póster)
+    let targetRotY = -0.35;
+    let currentRotX = targetRotX;
+    let currentRotY = targetRotY;
+
+    window.addEventListener('pointermove', (e) => {
+      const nx = (e.clientX / window.innerWidth) * 2 - 1;
+      const ny = (e.clientY / window.innerHeight) * 2 - 1;
+
+      mouseX = nx;
+      mouseY = ny;
+
+      // Inclinación 3D acentuada al mover el ratón
+      targetRotY = -0.35 + mouseX * 0.9;
+      targetRotX = 0.45 - mouseY * 0.7;
+
+      // Desplazamiento de luz puntual con el ratón
+      pointLight.position.x = mouseX * 4;
+      pointLight.position.y = -mouseY * 4;
+    });
+
+    // ═══ LOOP DE RENDER CON OSCILACIÓN SUTIL ═══
+    let clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const elapsed = clock.getElapsedTime();
+
+      // Física de resorte / amortiguación
+      currentRotX += (targetRotX + Math.sin(elapsed * 1.2) * 0.04 - currentRotX) * 0.08;
+      currentRotY += (targetRotY + Math.cos(elapsed * 0.8) * 0.05 - currentRotY) * 0.08;
+
+      coinGroup.rotation.x = currentRotX;
+      coinGroup.rotation.y = currentRotY;
+
+      // Animación suave de partículas dispersas
+      for (let i = 0; i < dustCount; i++) {
+        const d = dustPositions[i];
+        d.baseAngle += d.speed;
+        const currentR = RADIUS * 1.1 + Math.sin(elapsed * 2.0 + i) * 0.2;
+        dustDummy.position.set(
+          Math.cos(d.baseAngle) * currentR,
+          Math.sin(d.baseAngle) * currentR - 0.2,
+          d.z + Math.cos(elapsed + i) * 0.1
+        );
+        dustDummy.updateMatrix();
+        dustMesh.setMatrixAt(i, dustDummy.matrix);
+      }
+      dustMesh.instanceMatrix.needsUpdate = true;
+
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // Resize Handler
+    window.addEventListener('resize', () => {
+      const w = canvasContainer.clientWidth;
+      const h = canvasContainer.clientHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    });
+
+    // Switcher de Monedas
+    window.switchToken = function(tokenId) {
+      currentTokenId = tokenId;
+      document.querySelectorAll('.btn-pixel').forEach(b => b.classList.remove('active'));
+      document.getElementById(`btn-${tokenId}`).classList.add('active');
+
+      const palette = TOKEN_PALETTES[tokenId] || TOKEN_PALETTES.ETH;
+      
+      // Animación GSAP de escala al mutar
+      coinGroup.scale.set(0.9, 0.9, 0.9);
+      setTimeout(() => {
+        buildVoxelCoin(tokenId);
+        coinGroup.scale.set(1.0, 1.0, 1.0);
+      }, 50);
+    };
+  </script>
+</body>
+</html>

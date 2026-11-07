@@ -1,4 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap');
 @import "tailwindcss";
+
+.font-pixel {
+  font-family: 'Silkscreen', monospace, sans-serif;
+  letter-spacing: -0.04em;
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    CRITERIALOCK // DESIGN SYSTEM TOKENS (MONOCHROME ASCII × FINTECH CRAFT)
@@ -28,20 +34,81 @@
   --ink-muted: #52525b;
   --ink-on-white: #000000;
 
-  /* ── 4. Micro-Indicadores Semánticos Quirúrgicos (Dots de 6px) ── */
-  --status-verified: #10b981;
-  --status-pending: #f59e0b;
-  --status-locked: #ffffff;
+  /* ── 4. Color Principal del Tablero de Pinterest (Default: Segmint Cobalt #0047FF) ── */
+  --accent-primary: #0047ff;
+  --accent-bright: #3b82f6;
+  --accent-ice: #93c5fd;
+  --accent-ink: #ffffff;
+  --accent-surface: rgba(0, 71, 255, 0.14);
+  --accent-border: rgba(59, 130, 246, 0.5);
+  --accent-glow: rgba(0, 71, 255, 0.3);
 
-  /* ── 5. Curvas Físicas de Resorte y Ola (Bencho + Pilar + Costado) ── */
+  /* ── 5. Micro-Indicadores Semánticos Quirúrgicos (Dots Sólidos de 6px, sin pulse decorativo R-19) ── */
+  --status-verified: #1fe05a;
+  --status-pending: #f59e0b;
+  --status-locked: #3b82f6;
+
+  /* ── 6. Curvas Físicas de Resorte y Ola (Bencho + Pilar + Costado) ── */
   --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
   --ease-wave: cubic-bezier(0.34, 1.25, 0.64, 1);
 
-  /* ── 6. Biseles Especulares Estilo Hardware / iOS ── */
+  /* ── 7. Biseles Especulares Estilo Hardware / iOS ── */
   --bevel-ios-white: inset 0 1px 0 0 rgba(255, 255, 255, 0.95), 0 8px 24px -4px rgba(255, 255, 255, 0.22);
+  --bevel-ios-accent: inset 0 1px 0 0 rgba(255, 255, 255, 0.42), 0 10px 28px -4px var(--accent-glow);
   --bevel-ios-dark: inset 0 1px 0 0 rgba(255, 255, 255, 0.09), 0 10px 24px -10px rgba(0, 0, 0, 0.9);
   --shadow-card: 0 24px 48px -12px rgba(0, 0, 0, 0.95);
+}
+
+/* ── Variantes Reactivas de Color Principal del Tablero de Pinterest ── */
+[data-pinterest-theme="cobalt"] {
+  --accent-primary: #0047ff;
+  --accent-bright: #3b82f6;
+  --accent-ice: #93c5fd;
+  --accent-ink: #ffffff;
+  --accent-surface: rgba(0, 71, 255, 0.14);
+  --accent-border: rgba(59, 130, 246, 0.52);
+  --accent-glow: rgba(0, 71, 255, 0.32);
+}
+
+[data-pinterest-theme="emerald"] {
+  --accent-primary: #1fe05a;
+  --accent-bright: #34d399;
+  --accent-ice: #a7f3d0;
+  --accent-ink: #000000;
+  --accent-surface: rgba(31, 224, 90, 0.14);
+  --accent-border: rgba(52, 211, 153, 0.52);
+  --accent-glow: rgba(31, 224, 90, 0.28);
+}
+
+[data-pinterest-theme="cyan"] {
+  --accent-primary: #00d8ec;
+  --accent-bright: #22d3ee;
+  --accent-ice: #a5f3fc;
+  --accent-ink: #000000;
+  --accent-surface: rgba(0, 216, 236, 0.14);
+  --accent-border: rgba(34, 211, 238, 0.52);
+  --accent-glow: rgba(0, 216, 236, 0.28);
+}
+
+[data-pinterest-theme="amber"] {
+  --accent-primary: #f59e0b;
+  --accent-bright: #fbbf24;
+  --accent-ice: #fde68a;
+  --accent-ink: #000000;
+  --accent-surface: rgba(245, 158, 11, 0.14);
+  --accent-border: rgba(251, 191, 36, 0.52);
+  --accent-glow: rgba(245, 158, 11, 0.28);
+}
+
+[data-pinterest-theme="monochrome"] {
+  --accent-primary: #ffffff;
+  --accent-bright: #e4e4e7;
+  --accent-ice: #ffffff;
+  --accent-ink: #000000;
+  --accent-surface: rgba(255, 255, 255, 0.1);
+  --accent-border: rgba(255, 255, 255, 0.45);
+  --accent-glow: rgba(255, 255, 255, 0.2);
 }
 
 html {
@@ -83,8 +150,33 @@ body {
   box-shadow: var(--bevel-ios-white);
 }
 
+.ios-bevel-accent {
+  box-shadow: var(--bevel-ios-accent);
+}
+
 .ios-bevel-dark {
   box-shadow: var(--bevel-ios-dark);
+}
+
+.bg-pinterest-primary {
+  background-color: var(--accent-primary);
+  color: var(--accent-ink);
+}
+
+.text-pinterest-bright {
+  color: var(--accent-bright);
+}
+
+.text-pinterest-ice {
+  color: var(--accent-ice);
+}
+
+.border-pinterest-accent {
+  border-color: var(--accent-border);
+}
+
+.bg-pinterest-surface {
+  background-color: var(--accent-surface);
 }
 
 /* ══ Particles (Bencho.dev) ════════════════════════════════════════════════ */

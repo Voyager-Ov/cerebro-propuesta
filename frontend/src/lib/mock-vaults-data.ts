@@ -13,6 +13,95 @@ export const ASCII_RAMPS: Record<GlyphRampKey, readonly string[]> = {
   Binary: [" ", ".", ":", "0", "1"],
 };
 
+/* ── Paletas Principales Extraídas del Tablero de Pinterest "twin" ──────────
+   1. Segmint Electric Cobalt (#0047FF): Pin #5 (Segmint 2023), Pin #1 (Dashboard),
+      Pin #15 (Build Web Onchain) y Pin #19 (Born to Build DAO).
+   2. Signal Acid Green (#1FE05A): Pin #4 (Squircle Verde Ácido), Pin #19 (DAO Lime)
+      y estética cripto-fintech de Lemon Cash Argentina.
+   3. Physical Cyber Cyan (#00F0FF): Pin #11 (The Physical Data Platform).
+   4. Thermal Solar Amber (#F59E0B): Pin #11 (Núcleo Térmico) & Voxel Gold.
+   5. Carbon Monochrome (#FFFFFF): Pin #2, #3, #6, #8 (Halftone ASCII puro).
+   ─────────────────────────────────────────────────────────────────────────── */
+export type PinterestPaletteKey =
+  | "cobalt"
+  | "emerald"
+  | "cyan"
+  | "amber"
+  | "monochrome";
+
+export interface PinterestPaletteConfig {
+  id: PinterestPaletteKey;
+  label: string;
+  shortLabel: string;
+  pinSource: string;
+  primaryHex: string;
+  brightHex: string;
+  iceHex: string;
+  contrastInk: "#FFFFFF" | "#000000";
+  spherePaletteIndex: number;
+}
+
+export const PINTEREST_PALETTES: Record<
+  PinterestPaletteKey,
+  PinterestPaletteConfig
+> = {
+  cobalt: {
+    id: "cobalt",
+    label: "Segmint Cobalt",
+    shortLabel: "Cobalt #0047FF",
+    pinSource: "Pin #05 Segmint 2023 & Pin #19 DAO",
+    primaryHex: "#0047FF",
+    brightHex: "#3B82F6",
+    iceHex: "#93C5FD",
+    contrastInk: "#FFFFFF",
+    spherePaletteIndex: 1,
+  },
+  emerald: {
+    id: "emerald",
+    label: "Signal Acid Lime",
+    shortLabel: "Acid #1FE05A",
+    pinSource: "Pin #04 Signal Green & Lemon Cash",
+    primaryHex: "#1FE05A",
+    brightHex: "#34D399",
+    iceHex: "#A7F3D0",
+    contrastInk: "#000000",
+    spherePaletteIndex: 3,
+  },
+  cyan: {
+    id: "cyan",
+    label: "Physical Cyan",
+    shortLabel: "Cyan #00F0FF",
+    pinSource: "Pin #11 Physical Data Platform",
+    primaryHex: "#00D8EC",
+    brightHex: "#22D3EE",
+    iceHex: "#A5F3FC",
+    contrastInk: "#000000",
+    spherePaletteIndex: 2,
+  },
+  amber: {
+    id: "amber",
+    label: "Thermal Amber",
+    shortLabel: "Amber #F59E0B",
+    pinSource: "Pin #11 Thermal Spectrum",
+    primaryHex: "#F59E0B",
+    brightHex: "#FBBF24",
+    iceHex: "#FDE68A",
+    contrastInk: "#000000",
+    spherePaletteIndex: 4,
+  },
+  monochrome: {
+    id: "monochrome",
+    label: "Carbon Halftone",
+    shortLabel: "Mono #FFFFFF",
+    pinSource: "Pin #02 & #06 ASCII Halftone",
+    primaryHex: "#FFFFFF",
+    brightHex: "#E4E4E7",
+    iceHex: "#FFFFFF",
+    contrastInk: "#000000",
+    spherePaletteIndex: 0,
+  },
+};
+
 export type SupportedCurrency = "ARGt" | "USDT" | "USDC" | "BRAt";
 
 export type OracleType =
@@ -79,6 +168,8 @@ export interface StablecoinAsset {
   volumeLocked: string;
   description: string;
   asciiSparkline: string;
+  accentColor: string;
+  highlightColor: string;
 }
 
 export const CURRENCY_RATES_TO_ARS: Record<SupportedCurrency, number> = {
@@ -105,6 +196,8 @@ export const STABLECOIN_ASSETS: StablecoinAsset[] = [
     description:
       "Moneda local tokenizada 1:1 por Twin Finance sobre Avalanche. Ideal para bloquear honorarios, alquileres y servicios locales sin fricción bancaria ni CBU bloqueados.",
     asciiSparkline: "══════════● 1.000",
+    accentColor: "#3B82F6",
+    highlightColor: "#93C5FD",
   },
   {
     id: "usdt",
@@ -122,6 +215,8 @@ export const STABLECOIN_ASSETS: StablecoinAsset[] = [
     description:
       "El estándar de dólar digital más líquido de Argentina y LATAM. Protege el poder adquisitivo del contrato frente a la inflación mientras dura el desarrollo.",
     asciiSparkline: "══════════● 1.000",
+    accentColor: "#1FE05A",
+    highlightColor: "#86EFAC",
   },
   {
     id: "usdc",
@@ -139,6 +234,8 @@ export const STABLECOIN_ASSETS: StablecoinAsset[] = [
     description:
       "Dólar digital nativo en Avalanche C-Chain para contratos corporativos, agencias de software y auditorías internacionales B2B.",
     asciiSparkline: "══════════● 1.000",
+    accentColor: "#388BFD",
+    highlightColor: "#BAE6FD",
   },
   {
     id: "brat",
@@ -156,6 +253,8 @@ export const STABLECOIN_ASSETS: StablecoinAsset[] = [
     description:
       "Riel directo entre Brasil y Argentina para exportadores PyME y desarrolladores que cobran desde San Pablo con liquidación automática a ARGt.",
     asciiSparkline: "══════════● 1.000",
+    accentColor: "#22D3EE",
+    highlightColor: "#A5F3FC",
   },
   {
     id: "dai",
@@ -173,6 +272,8 @@ export const STABLECOIN_ASSETS: StablecoinAsset[] = [
     description:
       "Stablecoin descentralizada colateralizada por contratos inteligentes. Cero riesgo de censura para fideicomisos autónomos.",
     asciiSparkline: "══════════● 1.000",
+    accentColor: "#F59E0B",
+    highlightColor: "#FDE68A",
   },
   {
     id: "avax",
@@ -190,6 +291,8 @@ export const STABLECOIN_ASSETS: StablecoinAsset[] = [
     description:
       "Motor de ejecución de CriteriaLock. Permite crear un bloqueo de plata y verificar oráculos con finalidad irreversible en menos de 1 segundo.",
     asciiSparkline: "··::==++**#▲ 43114",
+    accentColor: "#3B82F6",
+    highlightColor: "#93C5FD",
   },
 ];
 
