@@ -40,3 +40,8 @@ frontend/next-env.d.ts
 __pycache__/
 *.py[cod]
 *$py.class
+
+# External reference repositories (read-only analysis)
+references/
+/localito/
+

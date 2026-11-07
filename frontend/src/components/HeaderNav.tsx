@@ -62,6 +62,7 @@ export function HeaderNav({
           { href: "#como-funciona", label: "Cómo Funciona" },
           { href: "#simulador", label: "Simulador" },
           { href: "#explorador-pilar", label: "Bóvedas" },
+          { href: "/localito", label: "App Localito (Lemon UI)" },
         ].map((item) => (
           <a
             key={item.href}

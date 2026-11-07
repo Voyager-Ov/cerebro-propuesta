@@ -34,6 +34,7 @@ flowchart TD
         node_AR11["<b>[AR11]</b><br/>VGPU.sh WebGPU (Vercel Labs)"]:::arquitectura
         node_AR13["<b>[AR13]</b><br/>Crypto & Stablecoins ASCII 3D"]:::arquitectura
         node_AR14["<b>[AR14]</b><br/>Catálogo Frontend Clean UI & Blobatar"]:::arquitectura
+        node_AR15["<b>[AR15]</b><br/>Localito Lemon UI Wallet"]:::arquitectura
     end
 
     subgraph SG_ideas_equipo ["Las 2 Ideas en Decisión"]
@@ -53,7 +54,10 @@ flowchart TD
     node_AR10 --> node_AR11
     node_AR10 --> node_AR13
     node_AR13 --> node_AR14
+    node_AR14 --> node_AR15
     node_AR14 -->|implementa UI de| node_ID09
+    node_AR15 -->|implementa UI de| node_ID09
+    node_AR15 --> node_TW01
     node_AR13 --> node_TW01
     node_AR13 --> node_TW03
     node_AR08 --> node_AR10
