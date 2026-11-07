@@ -1,5 +1,6 @@
 "use client";
 
+import jsQR from "jsqr";
 import QRCode from "qrcode";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -471,7 +472,42 @@ function HighDefAsciiCoin({
 
 /* ============================================================================
    SLIDE TO CONFIRM (PISTA TACTIL LEMON)
+   Drag real con pointer capture (touch + mouse): el transform se aplica directo
+   al DOM para no re-renderizar por frame; al soltar >=85% explota a toda la
+   pantalla con slideBurst y confirma a mitad de la expansion.
    ============================================================================ */
+const SLIDE_KNOB = 44;
+const SLIDE_PAD = 6;
+
+function slideBurst(x: number, y: number) {
+  const size = Math.max(window.innerWidth, window.innerHeight) * 2.4;
+  const el = document.createElement("div");
+  Object.assign(el.style, {
+    position: "fixed",
+    left: `${x - size / 2}px`,
+    top: `${y - size / 2}px`,
+    width: `${size}px`,
+    height: `${size}px`,
+    borderRadius: "50%",
+    background: "#00DF1A",
+    transform: "scale(0)",
+    zIndex: "2147483647",
+    pointerEvents: "none",
+  });
+  document.body.appendChild(el);
+  el.animate([{ transform: "scale(0)" }, { transform: "scale(1)" }], {
+    duration: 560,
+    easing: "cubic-bezier(.3,.8,.3,1)",
+    fill: "forwards",
+  });
+  window.setTimeout(() => {
+    el.animate([{ opacity: 1 }, { opacity: 0 }], {
+      duration: 300,
+      fill: "forwards",
+    }).onfinish = () => el.remove();
+  }, 560);
+}
+
 function SlideToConfirm({
   label,
   disabled,
@@ -482,64 +518,116 @@ function SlideToConfirm({
   onConfirm: () => void;
 }) {
   const trackRef = useRef<HTMLDivElement | null>(null);
-  const [dragX, setDragX] = useState(0);
-  const [dragging, setDragging] = useState(false);
+  const knobRef = useRef<HTMLButtonElement | null>(null);
+  const fillRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef({ active: false, x: 0, start: 0, max: 1 });
+  const [armed, setArmed] = useState(false);
   const [done, setDone] = useState(false);
 
-  const handleMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragging || done || disabled || !trackRef.current) return;
-    const rect = trackRef.current.getBoundingClientRect();
-    const maxPx = Math.max(120, rect.width - 60);
-    const next = Math.max(0, Math.min(maxPx, e.clientX - rect.left - 28));
-    setDragX(next);
-    if (next >= maxPx * 0.9) {
-      setDragging(false);
-      setDone(true);
-      setDragX(maxPx);
-      onConfirm();
-    }
+  const setX = (x: number, animate: boolean) => {
+    const knob = knobRef.current;
+    const fill = fillRef.current;
+    if (!knob || !fill) return;
+    const t = animate ? "transform .3s cubic-bezier(.3,.9,.3,1.2)" : "none";
+    knob.style.transition = t;
+    fill.style.transition = animate
+      ? "width .3s cubic-bezier(.3,.9,.3,1.2)"
+      : "none";
+    knob.style.transform = `translateX(${x}px)`;
+    fill.style.width = `${x + SLIDE_KNOB + SLIDE_PAD * 2}px`;
   };
 
-  const handleEnd = () => {
-    if (!done) {
-      setDragging(false);
-      setDragX(0);
+  const succeed = () => {
+    if (done) return;
+    setDone(true);
+    setX(dragRef.current.max, true);
+    const rect = knobRef.current?.getBoundingClientRect();
+    const cx = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
+    const cy = rect ? rect.top + rect.height / 2 : window.innerHeight / 2;
+    window.setTimeout(() => slideBurst(cx, cy), 140);
+    window.setTimeout(onConfirm, 430);
+  };
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (disabled || done || !trackRef.current) return;
+    dragRef.current.active = true;
+    dragRef.current.start = e.clientX - dragRef.current.x;
+    dragRef.current.max = Math.max(
+      1,
+      trackRef.current.clientWidth - SLIDE_KNOB - SLIDE_PAD * 2
+    );
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!dragRef.current.active || done) return;
+    const x = Math.max(
+      0,
+      Math.min(dragRef.current.max, e.clientX - dragRef.current.start)
+    );
+    dragRef.current.x = x;
+    setX(x, false);
+    const isArmed = x >= dragRef.current.max * 0.85;
+    if (isArmed !== armed) setArmed(isArmed);
+  };
+
+  const handlePointerEnd = () => {
+    if (!dragRef.current.active) return;
+    dragRef.current.active = false;
+    if (dragRef.current.x >= dragRef.current.max * 0.85) {
+      succeed();
+    } else {
+      dragRef.current.x = 0;
+      setX(0, true);
+      setArmed(false);
     }
   };
 
   return (
     <div
       ref={trackRef}
-      onPointerMove={handleMove}
-      onPointerUp={handleEnd}
-      onPointerLeave={handleEnd}
-      className={`relative h-14 w-full rounded-full bg-[#121418] border border-white/10 overflow-hidden select-none touch-none flex items-center px-1.5 ${
-        disabled ? "opacity-40" : ""
-      }`}
+      className={`relative h-14 w-full rounded-full bg-[#121418] border overflow-hidden select-none touch-none flex items-center px-1.5 transition-colors ${
+        armed ? "border-[#00DF1A]/60" : "border-white/10"
+      } ${disabled ? "opacity-40" : ""}`}
     >
       <div
-        className="absolute inset-y-0 left-0 bg-[#00DF1A]/20"
-        style={{ width: `${dragX + 52}px` }}
+        ref={fillRef}
+        className={`absolute inset-y-0 left-0 transition-colors ${
+          armed ? "bg-[#00DF1A]/30" : "bg-[#00DF1A]/15"
+        }`}
+        style={{ width: SLIDE_KNOB + SLIDE_PAD * 2 }}
       />
-      <span className="w-full text-center text-xs font-bold tracking-wide text-white pointer-events-none z-10">
-        {done ? "Confirmado" : label}
+      <span
+        className={`absolute inset-0 flex items-center justify-center text-xs font-bold tracking-wide pointer-events-none z-10 transition-colors ${
+          armed || done ? "text-[#00DF1A]" : "text-white"
+        }`}
+      >
+        {done ? "Confirmando…" : armed ? "Soltá para confirmar" : label}
       </span>
       <button
+        ref={knobRef}
         type="button"
         disabled={disabled}
-        onPointerDown={() => !done && !disabled && setDragging(true)}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerEnd}
+        onPointerCancel={handlePointerEnd}
         onKeyDown={(e) => {
           if ((e.key === "Enter" || e.key === " ") && !done && !disabled) {
             e.preventDefault();
-            setDone(true);
-            onConfirm();
+            succeed();
           }
         }}
-        style={{ transform: `translateX(${dragX}px)` }}
         aria-label={label}
-        className="relative z-20 w-11 h-11 rounded-full bg-[#00DF1A] text-[#090D0A] flex items-center justify-center shadow-md cursor-grab active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed"
+        className={`relative z-20 w-11 h-11 rounded-full text-[#090D0A] flex items-center justify-center shadow-md cursor-grab active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-not-allowed transition-colors ${
+          done ? "bg-white" : "bg-[#00DF1A]"
+        }`}
       >
-        <ChevronRight className="w-5 h-5 stroke-[2.5]" />
+        {done ? (
+          <Check className="w-5 h-5 stroke-[2.8]" />
+        ) : (
+          <ChevronRight className="w-5 h-5 stroke-[2.5]" />
+        )}
       </button>
     </div>
   );
@@ -713,6 +801,180 @@ function QrView({
 }
 
 /* ============================================================================
+   VISTA SCAN — cámara para leer un QR localito://pay y pagar; si no hay cámara
+   se cae a la lista de alias (la vista de pagar de siempre)
+   ============================================================================ */
+function ScanPayView({
+  token,
+  me,
+  onPick,
+  onClose,
+}: {
+  token: string;
+  me: Participant;
+  onPick: (p: Participant, amountCents?: number) => void;
+  onClose: () => void;
+}) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [camError, setCamError] = useState<string | null>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [contacts, setContacts] = useState<Participant[]>([]);
+  const contactsRef = useRef<Participant[]>([]);
+  const onPickRef = useRef(onPick);
+  const meIdRef = useRef(me.id);
+  const lastScanRef = useRef(0);
+  onPickRef.current = onPick;
+  contactsRef.current = contacts;
+
+  useEffect(() => {
+    getParticipants(token)
+      .then(({ participants }) =>
+        setContacts(participants.filter((p) => p.id !== me.id))
+      )
+      .catch(() => {});
+  }, [token, me.id]);
+
+  useEffect(() => {
+    let raf = 0;
+    let stream: MediaStream | null = null;
+    const video = videoRef.current;
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+    const handlePayload = (raw: string): boolean => {
+      let url: URL;
+      try {
+        url = new URL(raw);
+      } catch {
+        return false;
+      }
+      if (url.protocol !== "localito:" || url.hostname !== "pay") return false;
+      const to = url.searchParams.get("to");
+      if (!to) return false;
+      const contact = contactsRef.current.find((p) => p.alias === to);
+      const amount = Number(url.searchParams.get("amount_cents"));
+      if (!contact) {
+        setScanError(`No encontramos a $${to}.`);
+        return true;
+      }
+      if (contact.id === meIdRef.current) {
+        setScanError("Es tu propio QR: no podés pagarte a vos mismo.");
+        return true;
+      }
+      onPickRef.current(
+        contact,
+        Number.isInteger(amount) && amount > 0 ? amount : undefined
+      );
+      return true;
+    };
+
+    const tick = () => {
+      raf = requestAnimationFrame(tick);
+      if (!video || !ctx || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+      const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(img.data, img.width, img.height);
+      if (!code?.data) return;
+      if (Date.now() - lastScanRef.current < 2500) return;
+      lastScanRef.current = Date.now();
+      handlePayload(code.data);
+    };
+
+    navigator.mediaDevices
+      ?.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+        audio: false,
+      })
+      .then((s) => {
+        stream = s;
+        if (video) {
+          video.srcObject = s;
+          video.play().catch(() => {});
+        }
+        raf = requestAnimationFrame(tick);
+      })
+      .catch(() =>
+        setCamError("No pudimos abrir la cámara. Elegí un contacto abajo.")
+      );
+
+    return () => {
+      cancelAnimationFrame(raf);
+      stream?.getTracks().forEach((t) => t.stop());
+      if (video) video.srcObject = null;
+    };
+  }, []);
+
+  return (
+    <div className="absolute inset-0 z-30 bg-[#0E1014] flex flex-col">
+      <header className="px-5 pt-5 pb-1 flex items-center justify-between">
+        <span className="text-sm font-bold text-white">
+          Pagar · escaneá el QR
+        </span>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Cerrar"
+          className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-zinc-300 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00DF1A]"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </header>
+
+      <div className="flex-1 overflow-y-auto px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] flex flex-col gap-5">
+        <div className="w-full aspect-square rounded-3xl overflow-hidden bg-black relative border border-white/10">
+          {camError ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
+              <QrCode className="w-10 h-10 text-zinc-600" />
+              <p className="text-xs text-zinc-400">{camError}</p>
+            </div>
+          ) : (
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="w-full h-full object-cover"
+            />
+          )}
+          <div className="absolute inset-8 border-2 border-[#00DF1A]/70 rounded-2xl pointer-events-none" />
+        </div>
+
+        {scanError && (
+          <p className="text-xs text-red-400 text-center font-mono -mt-2">
+            {scanError}
+          </p>
+        )}
+
+        <div className="space-y-2">
+          <p className="text-xs font-mono text-zinc-500">
+            O ELEGÍ UN CONTACTO
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {contacts.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => onPickRef.current(p)}
+                className="h-10 px-4 rounded-full bg-[#1F232D] border border-white/10 hover:border-white/25 font-mono text-xs font-bold text-zinc-200 cursor-pointer transition-all"
+              >
+                ${p.alias}
+              </button>
+            ))}
+            {contacts.length === 0 && (
+              <span className="text-xs text-zinc-500 font-mono py-2">
+                Cargando contactos…
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================================
    CREDITO DEMO — perfil devuelto por /api/credit/score (simulación front-only)
    ============================================================================ */
 interface CuitScoreProfile {
@@ -746,7 +1008,7 @@ function WalletScreen({
   const [hideBalance, setHideBalance] = useState<boolean>(false);
   const [denseMode, setDenseMode] = useState<boolean>(true);
   const [activeSheet, setActiveSheet] = useState<
-    null | "send" | "qr" | "loan" | "done"
+    null | "send" | "qr" | "scan" | "loan" | "done"
   >(null);
   const [amountInput, setAmountInput] = useState<string>("0");
   const [recipients, setRecipients] = useState<Participant[]>([]);
@@ -814,7 +1076,10 @@ function WalletScreen({
   }, [token, me]);
 
   const openSheet = useCallback(
-    async (sheet: "send" | "qr" | "loan") => {
+    async (
+      sheet: "send" | "qr" | "scan" | "loan",
+      preset?: { recipient?: Participant; amountCents?: number }
+    ) => {
       setSendError(null);
       setLastPayment(null);
       if (sheet === "loan") {
@@ -822,8 +1087,12 @@ function WalletScreen({
         setCuitError(null);
       }
       if (sheet === "send") {
-        setAmountInput("0");
-        setRecipient(null);
+        setAmountInput(
+          preset?.amountCents
+            ? String(Math.max(0, Math.round(preset.amountCents / 100)))
+            : "0"
+        );
+        setRecipient(preset?.recipient ?? null);
         idemKeyRef.current = crypto.randomUUID();
         try {
           const { participants } = await getParticipants(token);
@@ -1021,13 +1290,13 @@ function WalletScreen({
           <div className="w-full grid grid-cols-4 gap-3 my-5">
             <button
               type="button"
-              onClick={() => openSheet("qr")}
+              onClick={() => openSheet("scan")}
               className="group flex flex-col items-center gap-1.5 cursor-pointer focus-visible:outline-none"
             >
               <span className="w-14 h-14 rounded-full bg-[#00DF1A] text-[#090D0A] flex items-center justify-center shadow-lg group-active:scale-95 transition-transform">
                 <QrCode className="w-6 h-6 stroke-[2.3]" />
               </span>
-              <span className="text-xs font-semibold text-white">QR</span>
+              <span className="text-xs font-semibold text-white">Pagar</span>
             </button>
 
             <button
@@ -1195,8 +1464,8 @@ function WalletScreen({
 
           <button
             type="button"
-            onClick={() => openSheet("qr")}
-            aria-label="Mi QR"
+            onClick={() => openSheet("scan")}
+            aria-label="Escanear para pagar"
             className="w-12 h-12 rounded-full bg-[#00DF1A] text-[#090D0A] flex items-center justify-center shadow-md active:scale-95 transition-transform cursor-pointer"
           >
             <QrCode className="w-5 h-5 stroke-[2.4]" />
@@ -1212,7 +1481,7 @@ function WalletScreen({
           </button>
         </nav>
 
-        {/* VISTA QR FULL SCREEN */}
+        {/* VISTA QR FULL SCREEN — tu QR para cobrar */}
         {activeSheet === "qr" && (
           <QrView
             me={me}
@@ -1221,8 +1490,22 @@ function WalletScreen({
           />
         )}
 
+        {/* VISTA SCAN FULL SCREEN — cámara para pagar con QR */}
+        {activeSheet === "scan" && (
+          <ScanPayView
+            token={token}
+            me={me}
+            onClose={() => setActiveSheet(null)}
+            onPick={(p, amountCents) =>
+              openSheet("send", { recipient: p, amountCents })
+            }
+          />
+        )}
+
         {/* 4. BOTTOM SHEETS ULTRA LIMPIOS (SIN BLOQUES DE TEXTO) */}
-        {activeSheet !== null && activeSheet !== "qr" && (
+        {activeSheet !== null &&
+          activeSheet !== "qr" &&
+          activeSheet !== "scan" && (
           <div
             className="absolute inset-0 z-30 bg-black/75 backdrop-blur-xs flex flex-col justify-end"
             onClick={(e) => {
@@ -1317,6 +1600,7 @@ function WalletScreen({
                     )}
 
                     <SlideToConfirm
+                      key={sendError ?? "ok"}
                       label={
                         sending
                           ? "Enviando…"
