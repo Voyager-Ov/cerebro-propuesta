@@ -7,5 +7,5 @@ export const metadata = {
 };
 
 export default function PagarPage() {
-  return <LemonLocalitoWallet initialTab="pay" />;
+  return <LemonLocalitoWallet />;
 }
