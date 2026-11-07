@@ -12,6 +12,8 @@ import {
   Eye,
   EyeOff,
   QrCode,
+  Search,
+  Send,
   SlidersHorizontal,
   X,
 } from "lucide-react";
@@ -28,7 +30,7 @@ import {
 
 /* ============================================================================
    ACTIVOS Y STABLECOINS (ESTILO LEMON CASH)
-   En la demo v0 solo TL es real (ledger localito en SQLite); el resto se muestra
+   En la demo v0 solo PRt es real (ledger localito en SQLite); el resto se muestra
    atenuado con sello "demo" siguiendo docs/frontend-integration.md.
    ============================================================================ */
 export interface CoinAsset {
@@ -43,10 +45,10 @@ export interface CoinAsset {
 }
 
 const TL_COIN: CoinAsset = {
-  id: "tl",
-  symbol: "TL",
-  name: "Moneda Localito",
-  glyph: "L",
+  id: "prt",
+  symbol: "PRt",
+  name: "Prestar",
+  glyph: "P",
   accentHex: "#CFFF2E",
   highlightHex: "#FFFFFF",
   shadowHex: "#4D6600",
@@ -633,8 +635,46 @@ function SlideToConfirm({
   );
 }
 
+function TxRow({ tx }: { tx: Transaction }) {
+  return (
+    <div className="w-full rounded-[18px] bg-[#15181F] border border-white/5 p-3.5 flex items-center justify-between">
+      <div className="flex items-center gap-3 min-w-0">
+        <div
+          className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
+            tx.direction === "in"
+              ? "bg-[#00DF1A]/15 text-[#00DF1A]"
+              : "bg-white/5 text-zinc-300"
+          }`}
+        >
+          {tx.direction === "in" ? (
+            <ArrowDownLeft className="w-4 h-4" />
+          ) : (
+            <ArrowUpRight className="w-4 h-4" />
+          )}
+        </div>
+        <div className="min-w-0">
+          <div className="text-sm font-semibold text-white truncate">
+            {tx.counterparty.display_name}
+          </div>
+          <div className="text-[11px] font-mono text-zinc-500 truncate">
+            {tx.note ?? new Date(tx.created_at).toLocaleDateString("es-AR")}
+          </div>
+        </div>
+      </div>
+      <span
+        className={`text-sm font-bold tabular-nums shrink-0 ${
+          tx.direction === "in" ? "text-[#00DF1A]" : "text-white"
+        }`}
+      >
+        {tx.direction === "in" ? "+" : "−"}
+        {formatCents(tx.amount_cents)}
+      </span>
+    </div>
+  );
+}
+
 /* ============================================================================
-   FORMATO ARS — la API trabaja en centavos enteros; 1 TL = 1 ARS nominal.
+   FORMATO ARS — la API trabaja en centavos enteros; 1 PRt = 1 ARS nominal.
    ============================================================================ */
 const formatNumber = (n: number, decimals = 2) =>
   n.toLocaleString("es-AR", {
@@ -677,8 +717,8 @@ function LoginScreen({
       <div className="relative w-full max-w-[400px] h-dvh sm:h-[820px] sm:rounded-[44px] bg-[#0E1014] sm:border-[6px] sm:border-[#1D2028] shadow-2xl overflow-hidden flex flex-col">
         <div className="flex-1 flex flex-col items-center justify-center px-6 gap-8">
           <HighDefAsciiCoin
-            glyph="L"
-            ticker="TL"
+            glyph="P"
+            ticker="PRt"
             accentColor="#CFFF2E"
             highlightColor="#FFFFFF"
             shadowColor="#4D6600"
@@ -757,7 +797,7 @@ function QrView({
   return (
     <div className="absolute inset-0 z-30 bg-[#0E1014] flex flex-col">
       <header className="px-5 pt-5 pb-1 flex items-center justify-between">
-        <span className="text-sm font-bold text-white">Mi QR · cobrá en TL</span>
+        <span className="text-sm font-bold text-white">Mi QR · cobrá en PRt</span>
         <button
           type="button"
           onClick={onClose}
@@ -991,7 +1031,197 @@ interface CuitScoreProfile {
 }
 
 /* ============================================================================
-   PANTALLA PRINCIPAL LEMON CASH MOBILE — TL real contra API v0
+   VISTA PAGAR — full screen, 2 pasos: elegir alias -> monto + slide
+   ============================================================================ */
+function PayView({
+  recipients,
+  recipient,
+  onSelectRecipient,
+  amountInput,
+  onKeyPress,
+  sending,
+  sendError,
+  availableCents,
+  isReal,
+  coinSymbol,
+  onConfirm,
+  onClose,
+}: {
+  recipients: Participant[];
+  recipient: Participant | null;
+  onSelectRecipient: (p: Participant) => void;
+  amountInput: string;
+  onKeyPress: (k: string) => void;
+  sending: boolean;
+  sendError: string | null;
+  availableCents: number;
+  isReal: boolean;
+  coinSymbol: string;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  const [step, setStep] = useState<"who" | "amount">(
+    recipient ? "amount" : "who"
+  );
+  const [query, setQuery] = useState("");
+
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? recipients.filter(
+        (p) =>
+          p.alias.toLowerCase().includes(q) ||
+          p.display_name.toLowerCase().includes(q)
+      )
+    : recipients;
+
+  const pick = (p: Participant) => {
+    onSelectRecipient(p);
+    setStep("amount");
+  };
+
+  return (
+    <div className="absolute inset-0 z-30 bg-[#0E1014] flex flex-col">
+      <header className="px-5 pt-5 pb-1 flex items-center justify-between">
+        <span className="text-sm font-bold text-white">
+          {step === "who" ? "¿A quién le transferís?" : "Pagar en PRt"}
+        </span>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Cerrar"
+          className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-zinc-300 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00DF1A]"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </header>
+
+      {!isReal ? (
+        <p className="flex-1 flex items-center justify-center text-center text-sm text-zinc-400 px-8">
+          {coinSymbol} no está disponible en esta demo. Elegí PRt para pagar.
+        </p>
+      ) : step === "who" ? (
+        <div className="flex-1 overflow-y-auto px-5 py-3 space-y-2">
+          <div className="relative pb-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
+            <input
+              type="text"
+              inputMode="search"
+              autoComplete="off"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Alias, CBU o CVU"
+              className="w-full h-12 rounded-full bg-[#15181F] border border-white/10 pl-11 pr-4 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:border-[#00DF1A]/60"
+            />
+          </div>
+          {recipients.length === 0 && (
+            <p className="text-xs text-zinc-500 font-mono py-10 text-center">
+              Cargando contactos…
+            </p>
+          )}
+          {recipients.length > 0 && filtered.length === 0 && (
+            <p className="text-xs text-zinc-500 font-mono py-10 text-center">
+              Sin resultados para “{query}”.
+            </p>
+          )}
+          {filtered.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => pick(p)}
+              className="w-full h-16 rounded-2xl bg-[#15181F] border border-white/5 hover:bg-[#191C24] hover:border-white/15 flex items-center gap-3 px-4 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00DF1A]"
+            >
+              <span className="w-10 h-10 rounded-full bg-[#1A1D24] border border-white/10 flex items-center justify-center font-mono text-xs font-bold text-[#00DF1A] shrink-0">
+                {p.alias.slice(0, 2).toUpperCase()}
+              </span>
+              <span className="flex-1 text-left min-w-0">
+                <span className="block text-sm font-semibold text-white truncate">
+                  {p.display_name}
+                </span>
+                <span className="block text-[11px] font-mono text-zinc-500">
+                  ${p.alias}
+                </span>
+              </span>
+              <ChevronRight className="w-4 h-4 text-zinc-500 shrink-0" />
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto px-5 flex flex-col">
+          {recipient && (
+            <button
+              type="button"
+              onClick={() => setStep("who")}
+              className="w-full h-14 rounded-2xl bg-[#15181F] border border-white/5 flex items-center gap-3 px-4 mt-2 cursor-pointer"
+            >
+              <span className="w-9 h-9 rounded-full bg-[#00DF1A]/15 flex items-center justify-center font-mono text-[11px] font-bold text-[#00DF1A] shrink-0">
+                {recipient.alias.slice(0, 2).toUpperCase()}
+              </span>
+              <span className="flex-1 text-left min-w-0">
+                <span className="block text-sm font-semibold text-white truncate">
+                  {recipient.display_name}
+                </span>
+                <span className="block text-[11px] font-mono text-zinc-500">
+                  ${recipient.alias}
+                </span>
+              </span>
+              <span className="text-[11px] font-mono font-bold text-[#00DF1A] shrink-0">
+                Cambiar
+              </span>
+            </button>
+          )}
+
+          <div className="flex-1 flex flex-col items-center justify-center py-5">
+            <div className="text-5xl font-bold tabular-nums text-white tracking-tight">
+              $ {amountInput}
+            </div>
+            <span className="text-xs font-mono text-zinc-400 pt-2">
+              Margen disponible: {formatCents(availableCents)}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 pb-3">
+            {["1", "2", "3", "4", "5", "6", "7", "8", "9", "00", "0", "DEL"].map(
+              (k) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => onKeyPress(k)}
+                  className="h-12 rounded-2xl bg-[#1F232D] active:scale-95 text-base font-bold text-white cursor-pointer"
+                >
+                  {k === "DEL" ? "⌫" : k}
+                </button>
+              )
+            )}
+          </div>
+
+          {sendError && (
+            <p className="text-xs text-red-400 text-center font-mono pb-2">
+              {sendError}
+            </p>
+          )}
+
+          <div className="pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+            <SlideToConfirm
+              key={sendError ?? "ok"}
+              label={
+                sending
+                  ? "Enviando…"
+                  : recipient
+                  ? `Deslizá para pagar a $${recipient.alias}`
+                  : "Elegí un contacto"
+              }
+              disabled={!recipient || sending}
+              onConfirm={onConfirm}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================================
+   PANTALLA PRINCIPAL LEMON CASH MOBILE — PRt real contra API v0
    ============================================================================ */
 function WalletScreen({
   token,
@@ -1004,7 +1234,7 @@ function WalletScreen({
   onRefresh: (participant: Participant) => void;
   onLogout: () => void;
 }) {
-  const [selectedId, setSelectedId] = useState<string>("tl");
+  const [selectedId, setSelectedId] = useState<string>("prt");
   const [hideBalance, setHideBalance] = useState<boolean>(false);
   const [denseMode, setDenseMode] = useState<boolean>(true);
   const [activeSheet, setActiveSheet] = useState<
@@ -1022,6 +1252,7 @@ function WalletScreen({
   const idemKeyRef = useRef<string>("");
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [tab, setTab] = useState<"home" | "activity">("home");
   const [loanStep, setLoanStep] = useState<"cuit" | "amount">("cuit");
   const [loanCuit, setLoanCuit] = useState<string>("");
   const [cuitProfile, setCuitProfile] = useState<CuitScoreProfile | null>(null);
@@ -1051,7 +1282,7 @@ function WalletScreen({
             direction: "in" as const,
             counterparty: {
               alias: "credito",
-              display_name: "Préstamo TL (simulación)",
+              display_name: "Préstamo PRt (simulación)",
             },
             amount_cents: simCredit.amountCents,
             note: `Préstamo ${simCredit.termDays}d · 0% Interés`,
@@ -1241,6 +1472,8 @@ function WalletScreen({
 
         {/* 2. CUERPO PRINCIPAL */}
         <div className="flex-1 overflow-y-auto px-5 pb-[calc(5rem+env(safe-area-inset-bottom))] flex flex-col items-center">
+          {tab === "home" && (
+          <>
           {/* MONEDA 3D ASCII GIGANTE Y NITIDA EN EL CENTRO */}
           <div className="-mt-1 -mb-2 flex items-center justify-center">
             <HighDefAsciiCoin
@@ -1290,11 +1523,11 @@ function WalletScreen({
           <div className="w-full grid grid-cols-4 gap-3 my-5">
             <button
               type="button"
-              onClick={() => openSheet("scan")}
+              onClick={() => openSheet("send")}
               className="group flex flex-col items-center gap-1.5 cursor-pointer focus-visible:outline-none"
             >
               <span className="w-14 h-14 rounded-full bg-[#00DF1A] text-[#090D0A] flex items-center justify-center shadow-lg group-active:scale-95 transition-transform">
-                <QrCode className="w-6 h-6 stroke-[2.3]" />
+                <Send className="w-6 h-6 stroke-[2.3]" />
               </span>
               <span className="text-xs font-semibold text-white">Pagar</span>
             </button>
@@ -1398,7 +1631,7 @@ function WalletScreen({
             })}
           </div>
 
-          {/* MOVIMIENTOS — ledger real (GET /transactions) + crédito simulado */}
+          {/* MOVIMIENTOS — últimos 5; la lista completa vive en el tab Actividad */}
           <div className="w-full space-y-2 mt-6">
             <p className="text-xs font-mono text-zinc-500 pb-1">MOVIMIENTOS</p>
             {feedItems.length === 0 && (
@@ -1406,46 +1639,38 @@ function WalletScreen({
                 Todavía no hay movimientos.
               </p>
             )}
-            {feedItems.map((tx) => (
-              <div
-                key={tx.id}
-                className="w-full rounded-[18px] bg-[#15181F] border border-white/5 p-3.5 flex items-center justify-between"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-                      tx.direction === "in"
-                        ? "bg-[#00DF1A]/15 text-[#00DF1A]"
-                        : "bg-white/5 text-zinc-300"
-                    }`}
-                  >
-                    {tx.direction === "in" ? (
-                      <ArrowDownLeft className="w-4 h-4" />
-                    ) : (
-                      <ArrowUpRight className="w-4 h-4" />
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold text-white truncate">
-                      {tx.counterparty.display_name}
-                    </div>
-                    <div className="text-[11px] font-mono text-zinc-500 truncate">
-                      {tx.note ??
-                        new Date(tx.created_at).toLocaleDateString("es-AR")}
-                    </div>
-                  </div>
-                </div>
-                <span
-                  className={`text-sm font-bold tabular-nums shrink-0 ${
-                    tx.direction === "in" ? "text-[#00DF1A]" : "text-white"
-                  }`}
-                >
-                  {tx.direction === "in" ? "+" : "−"}
-                  {formatCents(tx.amount_cents)}
-                </span>
-              </div>
+            {feedItems.slice(0, 5).map((tx) => (
+              <TxRow key={tx.id} tx={tx} />
             ))}
+            {feedItems.length > 5 && (
+              <button
+                type="button"
+                onClick={() => setTab("activity")}
+                className="w-full text-center text-xs font-mono font-bold text-[#00DF1A] py-2 cursor-pointer"
+              >
+                Ver todos →
+              </button>
+            )}
           </div>
+          </>
+          )}
+
+          {/* TAB ACTIVIDAD — historial completo (GET /transactions + simulado) */}
+          {tab === "activity" && (
+            <div className="w-full pt-3 space-y-2">
+              <p className="text-xs font-mono text-zinc-500 pb-1">
+                ACTIVIDAD · {feedItems.length} MOVIMIENTOS
+              </p>
+              {feedItems.length === 0 && (
+                <p className="text-xs text-zinc-500 font-mono py-10 text-center">
+                  Todavía no hay movimientos.
+                </p>
+              )}
+              {feedItems.map((tx) => (
+                <TxRow key={tx.id} tx={tx} />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* 3. BOTTOM BAR LEMON (SOLO ICONOS LIMPIOS) */}
@@ -1455,11 +1680,33 @@ function WalletScreen({
         >
           <button
             type="button"
-            onClick={() => setActiveSheet(null)}
+            onClick={() => {
+              setTab("home");
+              setActiveSheet(null);
+            }}
             aria-label="Inicio"
-            className="w-11 h-11 flex items-center justify-center text-[#00DF1A] cursor-pointer"
+            className={`w-11 h-11 flex items-center justify-center cursor-pointer ${
+              tab === "home" ? "text-[#00DF1A]" : "text-zinc-500"
+            }`}
           >
-            <div className="w-2.5 h-2.5 rounded-full bg-[#00DF1A]" />
+            <div
+              className={`w-2.5 h-2.5 rounded-full ${
+                tab === "home" ? "bg-[#00DF1A]" : "bg-zinc-600"
+              }`}
+            />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setTab("activity")}
+            aria-label="Actividad"
+            className={`w-11 h-11 flex items-center justify-center cursor-pointer transition-colors ${
+              tab === "activity"
+                ? "text-[#00DF1A]"
+                : "text-zinc-400 hover:text-white"
+            }`}
+          >
+            <ArrowLeftRight className="w-5 h-5" />
           </button>
 
           <button
@@ -1502,120 +1749,35 @@ function WalletScreen({
           />
         )}
 
+        {/* VISTA PAGAR FULL SCREEN — alias -> monto -> slide */}
+        {activeSheet === "send" && (
+          <PayView
+            recipients={recipients}
+            recipient={recipient}
+            onSelectRecipient={setRecipient}
+            amountInput={amountInput}
+            onKeyPress={handleKeyPress}
+            sending={sending}
+            sendError={sendError}
+            availableCents={me.available_cents}
+            isReal={isReal}
+            coinSymbol={activeCoin.symbol}
+            onConfirm={handleConfirmSend}
+            onClose={() => setActiveSheet(null)}
+          />
+        )}
+
         {/* 4. BOTTOM SHEETS ULTRA LIMPIOS (SIN BLOQUES DE TEXTO) */}
         {activeSheet !== null &&
           activeSheet !== "qr" &&
-          activeSheet !== "scan" && (
+          activeSheet !== "scan" &&
+          activeSheet !== "send" && (
           <div
             className="absolute inset-0 z-30 bg-black/75 backdrop-blur-xs flex flex-col justify-end"
             onClick={(e) => {
               if (e.target === e.currentTarget) setActiveSheet(null);
             }}
           >
-            {/* ENVIAR / PAGAR */}
-            {activeSheet === "send" && (
-              <div className="max-h-[85%] overflow-y-auto rounded-t-[32px] bg-[#161920] border-t border-white/15 p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-white">
-                    Pagar en TL
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setActiveSheet(null)}
-                    aria-label="Cerrar"
-                    className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-zinc-300 cursor-pointer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {!isReal ? (
-                  <p className="text-center text-sm text-zinc-400 py-6">
-                    {activeCoin.symbol} no está disponible en esta demo. Elegí
-                    TL para pagar.
-                  </p>
-                ) : (
-                  <>
-                    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-                      {recipients.map((p) => (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => setRecipient(p)}
-                          className={`shrink-0 h-10 px-4 rounded-full border font-mono text-xs font-bold transition-all cursor-pointer ${
-                            recipient?.id === p.id
-                              ? "bg-[#00DF1A] text-[#090D0A] border-[#00DF1A]"
-                              : "bg-[#1F232D] text-zinc-200 border-white/10 hover:border-white/25"
-                          }`}
-                        >
-                          ${p.alias}
-                        </button>
-                      ))}
-                      {recipients.length === 0 && (
-                        <span className="text-xs text-zinc-500 font-mono py-2">
-                          Cargando contactos…
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="text-center py-3">
-                      <div className="text-4xl font-bold tabular-nums text-white">
-                        $ {amountInput}
-                      </div>
-                      <span className="text-xs font-mono text-zinc-400">
-                        Margen disponible: {formatCents(me.available_cents)}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        "1",
-                        "2",
-                        "3",
-                        "4",
-                        "5",
-                        "6",
-                        "7",
-                        "8",
-                        "9",
-                        "00",
-                        "0",
-                        "DEL",
-                      ].map((k) => (
-                        <button
-                          key={k}
-                          type="button"
-                          onClick={() => handleKeyPress(k)}
-                          className="h-12 rounded-2xl bg-[#1F232D] active:scale-95 text-base font-bold text-white cursor-pointer"
-                        >
-                          {k === "DEL" ? "⌫" : k}
-                        </button>
-                      ))}
-                    </div>
-
-                    {sendError && (
-                      <p className="text-xs text-red-400 text-center font-mono">
-                        {sendError}
-                      </p>
-                    )}
-
-                    <SlideToConfirm
-                      key={sendError ?? "ok"}
-                      label={
-                        sending
-                          ? "Enviando…"
-                          : recipient
-                          ? `Desliza para pagar a $${recipient.alias}`
-                          : "Elegí un contacto"
-                      }
-                      disabled={!recipient || sending}
-                      onConfirm={handleConfirmSend}
-                    />
-                  </>
-                )}
-              </div>
-            )}
-
             {/* CREDITO — scoring por CUIT (simulación front-only) + margen real */}
             {activeSheet === "loan" && (
               <div className="max-h-[85%] overflow-y-auto rounded-t-[32px] bg-[#161920] border-t border-white/15 p-5 space-y-4">
@@ -1751,7 +1913,7 @@ function WalletScreen({
                         <span>Monto</span>
                         <span>
                           Cupo máx: {formatNumber(cuitProfile.maxCreditTokens, 0)}{" "}
-                          TL
+                          PRt
                         </span>
                       </div>
 
@@ -1759,7 +1921,7 @@ function WalletScreen({
                         <div className="text-3xl font-black text-white tabular-nums tracking-tight">
                           {formatNumber(loanSlider, 0)}{" "}
                           <span className="text-lg font-bold text-[#CFFF2E]">
-                            TL
+                            PRt
                           </span>
                         </div>
                         <div className="text-xs font-mono text-zinc-400 mt-0.5">
@@ -1836,7 +1998,7 @@ function WalletScreen({
                               Math.round(loanSlider / (loanTermDays / 30)),
                               0
                             )}{" "}
-                            TL/mes
+                            PRt/mes
                           </span>
                         </div>
                         <div className="rounded-xl bg-[#0E1016] p-2.5">
