@@ -1,6 +1,18 @@
-# Cerebro Secundario: Hackathons, Figma Design System y Comparativa de Ideas
+# Cerebro Secundario (DESACTIVADO)
 
-Bienvenido al **Segundo Cerebro** del proyecto de ideación para hackathons de vanguardia. Este grafo de conocimiento integra:
+> [!WARNING]
+> **CEREBRO LOCAL DESACTIVADO**
+> El cerebro local (`docs/cerebro/`) ha sido **desactivado**.
+> **El único cerebro activo y oficial del equipo es el Cerebro Compartido de la Hackathon:**
+> - **Repositorio Git**: [`https://github.com/JMReader/hackatwin-brain`](https://github.com/JMReader/hackatwin-brain)
+> - **Ruta local**: `C:\Users\pepep\SharedBrain-hackatwin`
+> - **Participante de este workspace**: `oky`
+> 
+> Toda documentación, arquitectura, decisiones y sesiones deben registrarse y consultarse exclusivamente en el Cerebro Compartido.
+
+---
+
+## Histórico / Archivo (Solo Lectura)
 1. **Los antecedentes ganadores en EE.UU.**: Cal Hacks 13.0 (*FortWatch*) y HackHarvard 2026 (*FEEL*).
 2. **HackaTwin (Sábado 7 de Noviembre de 2026)**: Desglose del evento en Digital House, sponsors (**Twin Finance, Belo, Tether, Avalanche**) y rieles de stablecoins locales (**ARGt, BRAt, COLt**).
 3. **Tendencias Globales de Startups Fintech**: *Agentic Finance*, adquisición de Bridge por Stripe ($1.1B USD) y rieles transfronterizos.

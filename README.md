@@ -4,6 +4,19 @@ Repositorio oficial con la investigación, arquitectura de conocimiento (**Segun
 
 ---
 
+## 🧠 Cerebro Compartido de la Hackathon
+
+> [!IMPORTANT]
+> **Única fuente de verdad y memoria compartida del equipo:**
+> - **Repositorio**: [`https://github.com/JMReader/hackatwin-brain`](https://github.com/JMReader/hackatwin-brain)
+> - **Ruta local**: `C:\Users\pepep\SharedBrain-hackatwin`
+> - **Participante**: `oky`
+> - **Compañeros / Roles**: `mdf-angel` (Engel), `korita`, `nanoo17`, `oky`.
+> 
+> *Nota: La carpeta histórica local `docs/cerebro/` ha sido desactivada en favor del cerebro compartido.*
+
+---
+
 ## 🧭 Estructura del Proyecto
 
 ```text

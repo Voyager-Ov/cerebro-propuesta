@@ -1,0 +1,7 @@
+brain_repo: https://github.com/JMReader/hackatwin-brain
+brain_root: C:\Users\pepep\SharedBrain-hackatwin
+brain_root_env: BRAIN_ROOT
+participant: oky
+participant_env: PARTICIPANT_ID
+project: moneda-local
+worklog_config: .brain/worklogs/moneda-local.json
